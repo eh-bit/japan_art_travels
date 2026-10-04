@@ -39,8 +39,10 @@ function buildIndex() {
   for (const k in IDX) delete IDX[k];
   DAYS.forEach(d => d.acts.forEach((a, i) => IDX['d' + d.n + '-' + i] = Object.assign({}, a, { dayN: d.n })));
   S.places.forEach(p => IDX[p.id] = {
-    t: p.t, n: p.name, m: p.note || '', d: p.note || '',
-    g: ['egen', p.cat], dayN: p.day, i: '📍', own: 1
+    t: p.t, n: p.name, m: p.addr || '', d: p.note || p.addr || '',
+    g: ['egen', p.cat], dayN: p.day, i: '📍', own: 1,
+    lat: p.lat, lng: p.lng,
+    L: p.url ? [['Öppna länken', p.url]] : []
   });
   Object.keys(IDX).forEach(k => {
     if (S.times[k]) IDX[k].t = S.times[k];
@@ -151,27 +153,39 @@ function drawMedia() {
   const a = IDX[cur], el = document.getElementById('shMedia');
   const hasImg = !!a.img, hasMap = a.lat != null;
   let inner = (mediaMode === 'karta' && hasMap)
-    ? tileMap(a.lat, a.lng, 15, el.clientWidth || 390, 210)
+    ? tileMap(a.lat, a.lng, 15, el.clientWidth || 390, 210, !!a.own)
     : (hasImg ? `<img src="img/${a.img}.jpg" alt="">` : `<div class="noimg">${a.i || '📍'}</div>`);
   if (hasMap && hasImg) inner += `<div class="mtoggle">
     <button class="${mediaMode === 'bild' ? 'on' : ''}" onclick="setMedia('bild')">Bild</button>
     <button class="${mediaMode === 'karta' ? 'on' : ''}" onclick="setMedia('karta')">Karta</button></div>`;
-  else if (hasMap && !hasImg) { inner = tileMap(a.lat, a.lng, 15, el.clientWidth || 390, 210); }
+  else if (hasMap && !hasImg) { inner = tileMap(a.lat, a.lng, 15, el.clientWidth || 390, 210, !!a.own); }
   el.innerHTML = inner;
 }
-/* Kartrutor som vanliga bilder — ligger lokalt och fungerar utan nät. */
-function tileMap(lat, lng, z, W, H) {
+/* Kartrutor: programmets platser ligger lokalt, egna hämtas och cachas vid behov. */
+const tileUrl = (z, x, y, remote) => remote
+  ? `https://tile.openstreetmap.org/${z}/${x}/${y}.png`
+  : `tiles/${z}/${x}/${y}.png`;
+function tileCoords(lat, lng, z, W, H) {
   const n = 2 ** z, xw = (lng + 180) / 360 * n, lr = lat * Math.PI / 180;
   const yw = (1 - Math.log(Math.tan(lr) + 1 / Math.cos(lr)) / Math.PI) / 2 * n;
-  const left = xw * 256 - W / 2, top = yw * 256 - H / 2;
-  let t = '';
+  const left = xw * 256 - W / 2, top = yw * 256 - H / 2, out = [];
   for (let tx = Math.floor(left / 256); tx <= Math.floor((left + W) / 256); tx++)
     for (let ty = Math.floor(top / 256); ty <= Math.floor((top + H) / 256); ty++) {
       if (ty < 0 || ty >= n) continue;
-      const xx = ((tx % n) + n) % n;
-      t += `<img class="tl" src="tiles/${z}/${xx}/${ty}.png" style="left:${Math.round(tx * 256 - left)}px;top:${Math.round(ty * 256 - top)}px" alt="">`;
+      out.push({ z, x: ((tx % n) + n) % n, y: ty,
+                 px: Math.round(tx * 256 - left), py: Math.round(ty * 256 - top) });
     }
+  return out;
+}
+function tileMap(lat, lng, z, W, H, remote) {
+  const t = tileCoords(lat, lng, z, W, H).map(c =>
+    `<img class="tl" src="${tileUrl(c.z, c.x, c.y, remote)}" style="left:${c.px}px;top:${c.py}px" alt="">`).join('');
   return `<div class="smap">${t}<div class="smk"></div><div class="satt">© OpenStreetMap</div></div>`;
+}
+// Hämtar hem rutorna direkt så den nya platsen fungerar utan nät senare
+function warmTiles(lat, lng) {
+  const urls = tileCoords(lat, lng, 15, 440, 260).map(c => tileUrl(c.z, c.x, c.y, true));
+  return Promise.allSettled(urls.map(u => fetch(u, { mode: 'no-cors' })));
 }
 function setMedia(m) { mediaMode = m; drawMedia(); }
 function renderTagEdit() {
@@ -213,26 +227,98 @@ function closeSheets() {
 }
 
 /* ---------- Egna platser ---------- */
+let picked = null, results = [];
+
+/* Namn och koordinater ligger i själva Maps-adressen. Kortlänkar saknar dem och
+   kan inte slås upp härifrån — Google skickar inga CORS-headers. */
+function parseMapsUrl(u) {
+  const ll = u.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/)
+          || u.match(/[?&]q=(-?\d+\.\d+),(-?\d+\.\d+)/)
+          || u.match(/[?&]ll=(-?\d+\.\d+),(-?\d+\.\d+)/)
+          || u.match(/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/);
+  if (!ll) return null;
+  const nm = u.match(/\/place\/([^/@?]+)/);
+  return { name: nm ? decodeURIComponent(nm[1]).replace(/\+/g, ' ') : '', lat: +ll[1], lng: +ll[2], url: u };
+}
+
+async function lookup() {
+  const q = document.getElementById('adQ').value.trim();
+  const box = document.getElementById('adRes');
+  if (!q) return;
+
+  if (/^https?:\/\//i.test(q)) {
+    if (/goo\.gl|maps\.app/i.test(q)) {
+      box.innerHTML = '<p class="searching">Det här är en kortlänk utan platsinfo. Öppna den i Safari först och kopiera den långa adressen — eller sök på namnet istället.</p>';
+      return;
+    }
+    const p = parseMapsUrl(q);
+    if (!p) {
+      box.innerHTML = '<p class="searching">Hittade inga koordinater i länken. Prova att söka på namnet.</p>';
+      return;
+    }
+    setPicked({ name: p.name, lat: p.lat, lng: p.lng, addr: '', url: p.url });
+    return;
+  }
+
+  box.innerHTML = '<p class="searching">Söker…</p>';
+  try {
+    const r = await fetch('https://nominatim.openstreetmap.org/search?format=jsonv2&limit=6&q=' + encodeURIComponent(q));
+    results = await r.json();
+    if (!results.length) {
+      box.innerHTML = '<p class="searching">Inga träffar. Prova med staden efter namnet, t.ex. ”Nishiki Market Kyoto”.</p>';
+      return;
+    }
+    box.innerHTML = '<div class="res">' + results.map((x, i) =>
+      `<div class="r" onclick="pickResult(${i})">
+        <div class="rn">${esc(x.name || x.display_name.split(',')[0])}</div>
+        <div class="ra">${esc(x.display_name)}</div></div>`).join('') + '</div>';
+  } catch (e) {
+    box.innerHTML = '<p class="searching">Sökningen misslyckades — kräver nät.</p>';
+  }
+}
+function pickResult(i) {
+  const x = results[i];
+  setPicked({ name: x.name || x.display_name.split(',')[0], lat: +x.lat, lng: +x.lon, addr: x.display_name, url: '' });
+}
+function setPicked(p) {
+  picked = p;
+  const nf = document.getElementById('adN');
+  if (p.name && !nf.value.trim()) nf.value = p.name;
+  document.getElementById('adRes').innerHTML =
+    `<div class="picked"><div style="font-size:16px">📍</div><div class="pk">
+      <b>${esc(p.name || 'Vald plats')}</b>${esc(p.addr || (p.lat.toFixed(5) + ', ' + p.lng.toFixed(5)))}</div>
+      <button onclick="clearPicked()">Ta bort</button></div>`;
+}
+function clearPicked() { picked = null; document.getElementById('adRes').innerHTML = ''; }
+
 function openAdd(fromPlaces) {
   document.getElementById('adT').textContent = fromPlaces ? 'Ny plats' : 'Ny punkt';
   document.getElementById('adD').innerHTML = '<option value="0">Ingen dag — bara en idé</option>' +
     DAYS.map(d => `<option value="${d.n}" ${d.n === sel && !fromPlaces ? 'selected' : ''}>Dag ${d.n} · ${d.dl} · ${esc(d.city)}</option>`).join('');
   document.getElementById('adN').value = '';
   document.getElementById('adNo').value = '';
+  document.getElementById('adQ').value = '';
+  clearPicked();
   document.getElementById('addsheet').classList.add('on');
   document.getElementById('scrim').classList.add('on');
 }
 function savePlace() {
   const n = document.getElementById('adN').value.trim();
   if (!n) { document.getElementById('adN').focus(); return; }
-  S.places.push({
+  const p = {
     id: 'p' + Date.now(), name: n,
     cat: document.getElementById('adC').value,
     t: document.getElementById('adTi').value,
     day: +document.getElementById('adD').value,
     note: document.getElementById('adNo').value.trim()
-  });
-  save(); buildIndex(); closeSheets(); drawActs(); drawPlaces();
+  };
+  if (picked) {
+    p.lat = picked.lat; p.lng = picked.lng;
+    p.addr = picked.addr; p.url = picked.url;
+    warmTiles(picked.lat, picked.lng);
+  }
+  S.places.push(p);
+  save(); buildIndex(); closeSheets(); drawActs(); drawPlaces(); backupInfo();
 }
 function drawPlaces() {
   const ic = { mat: '🍜', aktivitet: '🖼️', shopping: '🛍️', ovrigt: '📍' };
@@ -246,6 +332,7 @@ function drawPlaces() {
           <div style="font-size:15px;font-weight:650">${esc(p.name)}</div>
           <div style="font-size:11.5px;color:var(--ink-faint);margin-top:2px">${p.t} · ${d ? 'Dag ' + d.n + ' (' + d.dl + ')' : 'Ingen dag'}</div>
         </div></div>
+      ${p.addr ? `<p style="font-size:11.5px;color:var(--ink-faint);margin:7px 0 0;line-height:1.4">📍 ${esc(p.addr)}</p>` : ''}
       ${p.note ? `<p style="font-size:12.5px;color:var(--ink-soft);margin:9px 0 0;line-height:1.45">${esc(p.note)}</p>` : ''}
       <div class="tags" style="margin-top:8px">${tagHtml(['egen', p.cat])}</div></div>`;
   }).join('') : '<div class="empty"><div class="e">🍜</div><p>Inga egna platser än.<br>Lägg till restauranger och museer<br>ni hittar på vägen.</p></div>';

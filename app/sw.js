@@ -1,4 +1,7 @@
-const VERSION = 'japan-2026-v2';
+const VERSION = 'japan-2026-v3';
+// Egna platsers kartrutor ligger separat så de inte försvinner vid uppdatering
+const TILES = 'japan-egna-kartrutor';
+const OSM = 'https://tile.openstreetmap.org/';
 
 self.addEventListener('install', e => {
   e.waitUntil((async () => {
@@ -16,7 +19,7 @@ self.addEventListener('install', e => {
 self.addEventListener('activate', e => {
   e.waitUntil((async () => {
     const keys = await caches.keys();
-    await Promise.all(keys.filter(k => k !== VERSION).map(k => caches.delete(k)));
+    await Promise.all(keys.filter(k => k !== VERSION && k !== TILES).map(k => caches.delete(k)));
     await self.clients.claim();
   })());
 });
@@ -25,7 +28,19 @@ self.addEventListener('fetch', e => {
   const req = e.request;
   if (req.method !== 'GET') return;
   const url = new URL(req.url);
-  if (url.origin !== location.origin) return;   // kartlänkar m.m. lämnas åt nätet
+
+  if (req.url.startsWith(OSM)) {
+    e.respondWith((async () => {
+      const c = await caches.open(TILES);
+      const hit = await c.match(req);
+      if (hit) return hit;
+      const res = await fetch(req);
+      if (res.ok || res.type === 'opaque') c.put(req, res.clone());
+      return res;
+    })());
+    return;
+  }
+  if (url.origin !== location.origin) return;   // kartlänkar, sökning m.m. lämnas åt nätet
 
   e.respondWith((async () => {
     const cached = await caches.match(req, { ignoreSearch: true });

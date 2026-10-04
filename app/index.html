@@ -199,6 +199,20 @@ textarea{min-height:82px;resize:vertical;line-height:1.45;}
 .editlink{background:none;border:0;font:inherit;font-size:12px;font-weight:650;color:var(--primary);
   cursor:pointer;padding:5px 0;text-decoration:underline;}
 .nonum{font-size:12px;color:var(--ink-faint);font-style:italic;margin-bottom:5px;}
+.srow{display:flex;gap:7px;align-items:stretch;}
+.srow input{flex:1;min-width:0;}
+.srow button{flex:0 0 84px;margin:0;padding:12px 4px;font-size:14px;}
+.res{border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-top:10px;background:#fff;}
+.res .r{padding:11px 13px;border-bottom:1px solid var(--border);cursor:pointer;}
+.res .r:last-child{border-bottom:none;}
+.res .rn{font-size:14px;font-weight:650;}
+.res .ra{font-size:11.5px;color:var(--ink-faint);margin-top:2px;line-height:1.35;}
+.picked{background:var(--sage-soft);border:1px solid #cfe3d8;border-radius:12px;padding:11px 12px;
+  margin-top:10px;font-size:12.5px;color:#2f5e46;display:flex;gap:9px;align-items:flex-start;}
+.picked .pk{flex:1;min-width:0;}
+.picked b{display:block;font-size:13.5px;}
+.picked button{border:0;background:none;color:#2f5e46;font:inherit;font-size:12px;text-decoration:underline;cursor:pointer;flex:none;padding:0;}
+.searching{font-size:12.5px;color:var(--ink-faint);padding:10px 2px;}
 .numform input{margin-bottom:8px;font-size:16px;}
 .numform .fl{margin-top:8px;}
 .banner{background:var(--primary-dark);color:#fff;border-radius:14px;padding:12px 14px;margin-bottom:12px;display:flex;gap:11px;align-items:flex-start;}
@@ -347,6 +361,13 @@ textarea{min-height:82px;resize:vertical;line-height:1.45;}
 
   <div class="sheet" id="addsheet"><div class="grab"></div><div class="shpad">
     <h3 id="adT">Ny punkt</h3><p class="sm">Läggs till i din egen lista.</p>
+    <label class="fl">Sök plats eller klistra in kartlänk</label>
+    <div class="srow">
+      <input type="text" id="adQ" placeholder="t.ex. Nishiki Market Kyoto" enterkeyhint="search">
+      <button class="btn" onclick="lookup()">Sök</button>
+    </div>
+    <p class="hint" id="adHint">Hämtar namn, adress och koordinater så platsen får karta. Kräver nät.</p>
+    <div id="adRes"></div>
     <label class="fl">Namn</label><input type="text" id="adN" placeholder="t.ex. Kissa Tengu, kaffebar">
     <div class="row2">
       <div><label class="fl">Typ</label><select id="adC">
