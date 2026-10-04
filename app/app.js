@@ -207,6 +207,7 @@ function openRoute() {
   sr.classList.add('on');
   document.getElementById('scroll').scrollTop = 0;
   const el = document.getElementById('ruttmap');
+  el.classList.remove('fast');
   el.innerHTML = routeMapHtml(el.clientWidth, RTALL, { keep: true });
   sr.style.setProperty('--strip', routeV.short + 'px');
 }
@@ -229,13 +230,16 @@ function focusCity(n) {
   if (!el) return;
   // Kartan måste ha sin slutliga höjd innan vi rullar, annars siktar webbläsaren
   // på en position som försvinner när remsan krymper.
+  document.getElementById('ruttmap').classList.add('fast');
   setStrip(routeV.short);
   el.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 // Kartan krymper till en remsa när man rullar, så den syns kvar bland stadskorten.
 document.getElementById('scroll').addEventListener('scroll', () => {
   if (!document.getElementById('s-rutt').classList.contains('on') || !routeV) return;
-  setStrip(Math.max(routeV.short, RTALL - document.getElementById('scroll').scrollTop));
+  const t = document.getElementById('scroll').scrollTop;
+  document.getElementById('ruttmap').classList.toggle('fast', t > 2);
+  setStrip(Math.max(routeV.short, RTALL - t));
 }, { passive: true });
 
 /* ---------- Detaljpanel ---------- */
