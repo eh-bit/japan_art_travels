@@ -22,6 +22,7 @@ S.contacts = S.contacts || {};
 const save = () => localStorage.setItem(KEY, JSON.stringify(S));
 
 let sel = 1, filt = 'all', cat = 'alla', cur = null, mediaMode = 'bild', editTags = [];
+let valdSjalv = false;   // true så fort användaren själv valt en dag
 const mins = t => { const [a, b] = t.split(':').map(Number); return a * 60 + b; };
 const pad = n => String(n).padStart(2, '0');
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -88,7 +89,7 @@ function drawChips() {
   const el = document.querySelector('.chip.sel');
   if (el) el.scrollIntoView({ inline: 'center', block: 'nearest' });
 }
-function pick(n) { sel = n; drawChips(); drawActs(); }
+function pick(n) { sel = n; valdSjalv = true; drawChips(); drawActs(); }
 function drawFilters() {
   let h = [['all', 'Alla'], ['todo', 'Kvar']].map(([k, l]) =>
     `<button class="fch ${filt === k ? 'on' : ''}" onclick="setFilt('${k}')">${l}</button>`).join('');
@@ -113,8 +114,10 @@ function drawActs() {
   else if (filt !== 'all') list = list.filter(a => (a.g || []).includes(filt));
   document.getElementById('acts').innerHTML = list.length ? list.map(a => {
     const dn = S.done[a.k], nt = S.notes[a.k];
-    const thumb = a.img ? `<img class="athumb" src="img/${a.img}.jpg" alt="">`
-                        : `<div class="athumb ph">${a.i || '📍'}</div>`;
+    const own = a.photo && PHOTOS[a.photo];
+    const thumb = own ? `<img class="athumb" src="${own}" alt="">`
+      : a.img ? `<img class="athumb" src="img/${a.img}.jpg" alt="">`
+      : `<div class="athumb ph">${a.i || '📍'}</div>`;
     return `<div class="act ${dn ? 'done' : ''}" onclick="openAct('${a.k}')">
       <div class="tick"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5"><path d="M4 12.5l5.5 5.5L20 7"/></svg></div>
       ${thumb}
@@ -258,6 +261,7 @@ function openAct(k) {
   drawMedia();
   document.getElementById('sheet').classList.add('on');
   document.getElementById('scrim').classList.add('on');
+  shBase = shSnapshot();
 }
 function drawMedia() {
   const a = IDX[cur], el = document.getElementById('shMedia');
@@ -337,9 +341,55 @@ function delPlace() {
   save(); buildIndex(); closeSheets(); drawActs(); drawPlaces();
 }
 function closeSheets() {
-  document.querySelectorAll('.sheet').forEach(s => s.classList.remove('on'));
+  document.querySelectorAll('.sheet').forEach(s => { s.classList.remove('on'); s.style.transform = ''; });
   document.getElementById('scrim').classList.remove('on');
+  shBase = null;
 }
+
+let toastT = null;
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('on');
+  clearTimeout(toastT);
+  toastT = setTimeout(() => el.classList.remove('on'), 2400);
+}
+
+/* ---------- Dra ned för att stänga ---------- */
+let shBase = null;
+const shSnapshot = () => JSON.stringify([
+  document.getElementById('shN').value,
+  document.getElementById('shTime').value,
+  editTags.slice().sort()]);
+const shDirty = () => shBase !== null && shSnapshot() !== shBase;
+
+(function dragToClose() {
+  const sh = document.getElementById('sheet');
+  let y0 = null, dy = 0;
+  sh.addEventListener('pointerdown', e => {
+    // Bara från toppen av kortet, och inte när man träffar något man kan trycka på.
+    if (sh.scrollTop > 0 || e.target.closest('button,a,input,select,textarea,.tg')) return;
+    y0 = e.clientY; dy = 0;
+    sh.style.transition = 'none';
+  });
+  sh.addEventListener('pointermove', e => {
+    if (y0 === null) return;
+    dy = Math.max(0, e.clientY - y0);
+    sh.style.transform = `translateY(${dy}px)`;
+  });
+  const slapp = () => {
+    if (y0 === null) return;
+    sh.style.transition = '';
+    sh.style.transform = '';
+    if (dy > 90) {
+      if (shDirty()) toast('Du har ändringar — spara eller stäng.');
+      else closeSheets();
+    }
+    y0 = null;
+  };
+  sh.addEventListener('pointerup', slapp);
+  sh.addEventListener('pointercancel', slapp);
+})();
 
 /* ---------- Egna platser ---------- */
 let picked = null, results = [], sugg = [];
@@ -839,10 +889,17 @@ addEventListener('offline', drawBanners);
 
 /* ---------- Start ---------- */
 buildIndex();
-sel = todayDay() || 1;
+sel = todayDay() || DAYS[0].n;
 drawChips(); drawFilters(); drawActs(); drawPlaces(); drawHotels(); drawLeaders();
 drawRoute(); drawCities();
 drawNow(); drawBanners(); backupInfo();
-loadPhotos().then(() => { drawPlaces(); backupInfo(); });
+loadPhotos().then(() => { drawPlaces(); drawActs(); drawNow(); backupInfo(); });
 setInterval(drawNow, 60000);
-document.addEventListener('visibilitychange', () => { if (!document.hidden) drawNow(); });
+// När appen plockas fram igen kan dygnet ha vänt — hoppa till rätt dag om
+// användaren inte själv har bläddrat någon annanstans.
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) return;
+  drawNow();
+  const d = todayDay() || DAYS[0].n;
+  if (!valdSjalv && d !== sel) { sel = d; drawChips(); drawActs(); }
+});
