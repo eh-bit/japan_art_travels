@@ -41,7 +41,7 @@ function buildIndex() {
   S.places.forEach(p => IDX[p.id] = {
     t: p.t, n: p.name, m: p.addr || '', d: p.note || p.addr || '',
     g: ['egen', p.cat], dayN: p.day, i: '📍', own: 1,
-    lat: p.lat, lng: p.lng,
+    lat: p.lat, lng: p.lng, photo: p.photo, credit: p.credit,
     L: p.url ? [['Öppna länken', p.url]] : []
   });
   Object.keys(IDX).forEach(k => {
@@ -151,10 +151,13 @@ function openAct(k) {
 }
 function drawMedia() {
   const a = IDX[cur], el = document.getElementById('shMedia');
-  const hasImg = !!a.img, hasMap = a.lat != null;
+  const own = a.photo && PHOTOS[a.photo] ? PHOTOS[a.photo] : null;
+  const hasImg = !!a.img || !!own, hasMap = a.lat != null;
+  const pic = own ? `<img src="${own}" alt="">${a.credit ? `<div class="satt" style="left:4px;right:auto;max-width:70%">${esc(a.credit)}</div>` : ''}`
+    : (a.img ? `<img src="img/${a.img}.jpg" alt="">` : `<div class="noimg">${a.i || '📍'}</div>`);
   let inner = (mediaMode === 'karta' && hasMap)
     ? tileMap(a.lat, a.lng, 15, el.clientWidth || 390, 210, !!a.own)
-    : (hasImg ? `<img src="img/${a.img}.jpg" alt="">` : `<div class="noimg">${a.i || '📍'}</div>`);
+    : pic;
   if (hasMap && hasImg) inner += `<div class="mtoggle">
     <button class="${mediaMode === 'bild' ? 'on' : ''}" onclick="setMedia('bild')">Bild</button>
     <button class="${mediaMode === 'karta' ? 'on' : ''}" onclick="setMedia('karta')">Karta</button></div>`;
@@ -217,6 +220,8 @@ function saveDetail() {
 }
 function delPlace() {
   if (!confirm('Ta bort den här platsen?')) return;
+  const p = S.places.find(x => x.id === cur);
+  if (p && p.photo) photoDel(p.photo);
   S.places = S.places.filter(p => p.id !== cur);
   delete S.notes[cur]; delete S.done[cur]; delete S.times[cur]; delete S.tags[cur];
   save(); buildIndex(); closeSheets(); drawActs(); drawPlaces();
@@ -227,7 +232,7 @@ function closeSheets() {
 }
 
 /* ---------- Egna platser ---------- */
-let picked = null, results = [];
+let picked = null, results = [], sugg = [];
 
 /* Namn och koordinater ligger i själva Maps-adressen. Kortlänkar saknar dem och
    kan inte slås upp härifrån — Google skickar inga CORS-headers. */
@@ -282,6 +287,7 @@ function pickResult(i) {
 }
 function setPicked(p) {
   picked = p;
+  document.getElementById('adSugBtn').disabled = false;
   const nf = document.getElementById('adN');
   if (p.name && !nf.value.trim()) nf.value = p.name;
   document.getElementById('adRes').innerHTML =
@@ -289,7 +295,165 @@ function setPicked(p) {
       <b>${esc(p.name || 'Vald plats')}</b>${esc(p.addr || (p.lat.toFixed(5) + ', ' + p.lng.toFixed(5)))}</div>
       <button onclick="clearPicked()">Ta bort</button></div>`;
 }
-function clearPicked() { picked = null; document.getElementById('adRes').innerHTML = ''; }
+function clearPicked() {
+  picked = null;
+  document.getElementById('adRes').innerHTML = '';
+  document.getElementById('adSugBtn').disabled = true;
+  document.getElementById('adSug').innerHTML = '';
+}
+
+/* ---------- Foton ----------
+   Ligger i IndexedDB, inte localStorage — localStorage tar slut vid ~5 MB och då
+   skulle även anteckningar sluta sparas. */
+let DB = null;
+const PHOTOS = {};          // id -> objekt-URL för visning
+let newPhoto = null;        // { blob, credit } för platsen som håller på att läggas till
+
+function idb() {
+  return new Promise((res, rej) => {
+    if (DB) return res(DB);
+    const r = indexedDB.open('japan2026', 1);
+    r.onupgradeneeded = () => r.result.createObjectStore('photos', { keyPath: 'id' });
+    r.onsuccess = () => { DB = r.result; res(DB); };
+    r.onerror = () => rej(r.error);
+  });
+}
+async function photoPut(id, blob) {
+  const db = await idb();
+  await new Promise((res, rej) => {
+    const tx = db.transaction('photos', 'readwrite');
+    tx.objectStore('photos').put({ id, blob });
+    tx.oncomplete = res; tx.onerror = () => rej(tx.error);
+  });
+  if (PHOTOS[id]) URL.revokeObjectURL(PHOTOS[id]);
+  PHOTOS[id] = URL.createObjectURL(blob);
+}
+async function photoDel(id) {
+  if (!id) return;
+  const db = await idb();
+  await new Promise(res => {
+    const tx = db.transaction('photos', 'readwrite');
+    tx.objectStore('photos').delete(id);
+    tx.oncomplete = res;
+  });
+  if (PHOTOS[id]) { URL.revokeObjectURL(PHOTOS[id]); delete PHOTOS[id]; }
+}
+async function loadPhotos() {
+  try {
+    const db = await idb();
+    const all = await new Promise((res, rej) => {
+      const q = db.transaction('photos', 'readonly').objectStore('photos').getAll();
+      q.onsuccess = () => res(q.result); q.onerror = () => rej(q.error);
+    });
+    all.forEach(r => PHOTOS[r.id] = URL.createObjectURL(r.blob));
+  } catch (e) { console.warn('Kunde inte läsa foton:', e); }
+}
+
+/* Skalar ner till 900 px innan lagring — ett telefonfoto på 4 MB blir ca 60 kB. */
+function shrink(src, max = 900, q = 0.72) {
+  return new Promise((res, rej) => {
+    const img = new Image();
+    const url = URL.createObjectURL(src);
+    img.onload = () => {
+      const s = Math.min(1, max / Math.max(img.width, img.height));
+      const c = document.createElement('canvas');
+      c.width = Math.round(img.width * s);
+      c.height = Math.round(img.height * s);
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(url);
+      c.toBlob(b => b ? res(b) : rej(new Error('komprimering misslyckades')), 'image/jpeg', q);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); rej(new Error('kunde inte läsa bilden')); };
+    img.src = url;
+  });
+}
+
+async function pickPhoto(input) {
+  const f = input.files[0];
+  input.value = '';
+  if (!f) return;
+  const hint = document.getElementById('adPhotoHint');
+  hint.textContent = 'Bearbetar fotot…';
+  try {
+    newPhoto = { blob: await shrink(f), credit: '' };
+    drawPhotoPrev();
+    hint.textContent = `Fotot sparas på enheten (${Math.round(newPhoto.blob.size / 1024)} kB).`;
+  } catch (e) {
+    hint.textContent = 'Kunde inte läsa fotot: ' + e.message;
+  }
+}
+function drawPhotoPrev() {
+  const el = document.getElementById('adPhotoPrev');
+  if (!newPhoto) { el.innerHTML = ''; return; }
+  const u = URL.createObjectURL(newPhoto.blob);
+  el.innerHTML = `<div class="pprev"><img src="${u}" alt="">
+    <button onclick="clearPhoto()">Ta bort</button>
+    ${newPhoto.credit ? `<div class="cr">${esc(newPhoto.credit)}</div>` : ''}</div>`;
+}
+function clearPhoto() {
+  newPhoto = null;
+  document.getElementById('adPhotoPrev').innerHTML = '';
+  document.getElementById('adPhotoHint').textContent =
+    'Fotot sparas på enheten och visas på platsen. ”Från platsen” kräver att du valt en plats ovan.';
+}
+
+/* Bilder nära koordinaten, från Wikimedia Commons. Träffar beror på vad som finns
+   fotograferat — bra för sevärdheter, ofta tomt för små restauranger. */
+async function suggestPhotos() {
+  if (!picked) return;
+  const box = document.getElementById('adSug');
+  box.innerHTML = '<p class="searching">Söker bilder nära platsen…</p>';
+  try {
+    const u = 'https://commons.wikimedia.org/w/api.php?action=query&format=json&origin=*' +
+      '&generator=geosearch&ggsnamespace=6&ggslimit=10&ggsradius=400' +
+      `&ggscoord=${picked.lat}|${picked.lng}` +
+      '&prop=imageinfo&iiprop=url|extmetadata&iiurlwidth=300';
+    const d = await (await fetch(u)).json();
+    const pages = Object.values((d.query || {}).pages || {});
+    if (!pages.length) {
+      box.innerHTML = '<p class="searching">Inga bilder hittades här. Ta ett eget foto i stället.</p>';
+      return;
+    }
+    sugg = pages.map(p => {
+      const ii = (p.imageinfo || [{}])[0], m = ii.extmetadata || {};
+      const strip = s => String(s || '').replace(/<[^>]+>/g, '').trim();
+      return {
+        title: p.title,
+        thumb: ii.thumburl,
+        credit: (strip(m.Artist && m.Artist.value) || 'Wikimedia Commons') +
+                ' · ' + (strip(m.LicenseShortName && m.LicenseShortName.value) || 'se Commons')
+      };
+    }).filter(x => x.thumb);
+    box.innerHTML = '<div class="sugg">' + sugg.map((x, i) =>
+      `<img src="${x.thumb}" alt="" onclick="useSuggestion(${i},this)">`).join('') + '</div>';
+  } catch (e) {
+    box.innerHTML = '<p class="searching">Bilsökningen misslyckades — kräver nät.</p>';
+  }
+}
+async function useSuggestion(i, el) {
+  const s = sugg[i];
+  el.classList.add('busy');
+  const hint = document.getElementById('adPhotoHint');
+  hint.textContent = 'Hämtar bilden…';
+  try {
+    // Be api:et om 900 px — är originalet mindre får vi originalstorleken i stället
+    // för ett 400-svar, vilket uppskalning i url:en ger.
+    const q = 'https://commons.wikimedia.org/w/api.php?action=query&format=json&origin=*' +
+      '&prop=imageinfo&iiprop=url&iiurlwidth=900&titles=' + encodeURIComponent(s.title);
+    const d = await (await fetch(q)).json();
+    const ii = (Object.values(d.query.pages)[0].imageinfo || [{}])[0];
+    const url = ii.thumburl || ii.url;
+    if (!url) throw new Error('ingen bildadress');
+    const blob = await (await fetch(url)).blob();
+    newPhoto = { blob: await shrink(blob), credit: s.credit };
+    drawPhotoPrev();
+    document.getElementById('adSug').innerHTML = '';
+    hint.textContent = `Bilden sparas på enheten (${Math.round(newPhoto.blob.size / 1024)} kB).`;
+  } catch (e) {
+    el.classList.remove('busy');
+    hint.textContent = 'Kunde inte hämta bilden: ' + e.message;
+  }
+}
 
 function openAdd(fromPlaces) {
   document.getElementById('adT').textContent = fromPlaces ? 'Ny plats' : 'Ny punkt';
@@ -299,10 +463,12 @@ function openAdd(fromPlaces) {
   document.getElementById('adNo').value = '';
   document.getElementById('adQ').value = '';
   clearPicked();
+  clearPhoto();
+  document.getElementById('adSug').innerHTML = '';
   document.getElementById('addsheet').classList.add('on');
   document.getElementById('scrim').classList.add('on');
 }
-function savePlace() {
+async function savePlace() {
   const n = document.getElementById('adN').value.trim();
   if (!n) { document.getElementById('adN').focus(); return; }
   const p = {
@@ -317,6 +483,12 @@ function savePlace() {
     p.addr = picked.addr; p.url = picked.url;
     warmTiles(picked.lat, picked.lng);
   }
+  if (newPhoto) {
+    p.photo = 'ph' + Date.now();
+    p.credit = newPhoto.credit;
+    try { await photoPut(p.photo, newPhoto.blob); }
+    catch (e) { delete p.photo; alert('Fotot kunde inte sparas: ' + e.message); }
+  }
   S.places.push(p);
   save(); buildIndex(); closeSheets(); drawActs(); drawPlaces(); backupInfo();
 }
@@ -327,7 +499,8 @@ function drawPlaces() {
     const d = DAYS.find(x => x.n === p.day);
     return `<div class="card" onclick="openAct('${p.id}')" style="cursor:pointer">
       <div style="display:flex;gap:11px;align-items:center">
-        <div class="ico">${ic[p.cat] || '📍'}</div>
+        ${p.photo && PHOTOS[p.photo] ? `<img class="pthumb" src="${PHOTOS[p.photo]}" alt="">`
+          : `<div class="ico">${ic[p.cat] || '📍'}</div>`}
         <div style="flex:1;min-width:0">
           <div style="font-size:15px;font-weight:650">${esc(p.name)}</div>
           <div style="font-size:11.5px;color:var(--ink-faint);margin-top:2px">${p.t} · ${d ? 'Dag ' + d.n + ' (' + d.dl + ')' : 'Ingen dag'}</div>
@@ -516,8 +689,10 @@ function backupInfo() {
   const n = S.places.length, notes = Object.keys(S.notes).filter(k => S.notes[k]).length;
   const done = Object.keys(S.done).filter(k => S.done[k]).length;
   const num = Object.keys(S.contacts).length;
+  const ph = S.places.filter(p => p.photo).length;
   document.getElementById('bkinfo').textContent =
     `${notes} anteckningar · ${done} avbockade · ${n} egna platser · ${num} sparade nummer` +
+    (ph ? ` · ${ph} foton (ingår ej i exporten)` : '') +
     (S.lastBackup ? ` · senast exporterad ${S.lastBackup.slice(0, 10)}` : '');
 }
 
@@ -557,5 +732,6 @@ buildIndex();
 sel = todayDay() || 1;
 drawChips(); drawFilters(); drawActs(); drawPlaces(); drawHotels(); drawLeaders();
 drawNow(); drawBanners(); backupInfo();
+loadPhotos().then(() => { drawPlaces(); backupInfo(); });
 setInterval(drawNow, 60000);
 document.addEventListener('visibilitychange', () => { if (!document.hidden) drawNow(); });

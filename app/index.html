@@ -199,6 +199,22 @@ textarea{min-height:82px;resize:vertical;line-height:1.45;}
 .editlink{background:none;border:0;font:inherit;font-size:12px;font-weight:650;color:var(--primary);
   cursor:pointer;padding:5px 0;text-decoration:underline;}
 .nonum{font-size:12px;color:var(--ink-faint);font-style:italic;margin-bottom:5px;}
+/* Foton */
+.photorow{display:flex;gap:9px;flex-wrap:wrap;}
+.pbtn{flex:1;min-width:130px;border:1px solid var(--border);background:#fff;border-radius:12px;padding:12px 10px;
+  font:inherit;font-size:13px;font-weight:650;color:var(--primary-dark);cursor:pointer;}
+.pprev{position:relative;margin-top:10px;border-radius:13px;overflow:hidden;border:1px solid var(--border);}
+.pprev img{width:100%;height:160px;object-fit:cover;display:block;}
+.pprev button{position:absolute;top:8px;right:8px;border:0;background:rgba(0,0,0,.6);color:#fff;
+  font:inherit;font-size:11.5px;font-weight:650;padding:6px 11px;border-radius:8px;cursor:pointer;}
+.pprev .cr{position:absolute;left:0;right:0;bottom:0;background:rgba(0,0,0,.55);color:#fff;
+  font-size:9.5px;padding:4px 8px;line-height:1.3;}
+.sugg{display:flex;gap:7px;overflow-x:auto;margin-top:10px;padding-bottom:4px;scrollbar-width:none;}
+.sugg::-webkit-scrollbar{display:none;}
+.sugg img{width:96px;height:72px;object-fit:cover;border-radius:10px;border:1px solid var(--border);
+  flex:none;cursor:pointer;}
+.sugg img.busy{opacity:.4;}
+.pthumb{width:38px;height:38px;border-radius:11px;object-fit:cover;flex:none;}
 .srow{display:flex;gap:7px;align-items:stretch;}
 .srow input{flex:1;min-width:0;}
 .srow button{flex:0 0 84px;margin:0;padding:12px 4px;font-size:14px;}
@@ -376,6 +392,15 @@ textarea{min-height:82px;resize:vertical;line-height:1.45;}
       <div><label class="fl">Tid</label><input type="time" id="adTi" value="12:00"></div>
     </div>
     <label class="fl">Dag</label><select id="adD"></select>
+    <label class="fl">Bild</label>
+    <div class="photorow">
+      <button class="pbtn" onclick="document.getElementById('adPhoto').click()">📷 Eget foto</button>
+      <button class="pbtn" id="adSugBtn" onclick="suggestPhotos()" disabled>🖼 Från platsen</button>
+    </div>
+    <input type="file" id="adPhoto" accept="image/*" style="display:none" onchange="pickPhoto(this)">
+    <p class="hint" id="adPhotoHint">Fotot sparas på enheten och visas på platsen. ”Från platsen” kräver att du valt en plats ovan.</p>
+    <div id="adPhotoPrev"></div>
+    <div id="adSug"></div>
     <label class="fl">Anteckning</label><textarea id="adNo" placeholder="Adress, öppettider, varför…"></textarea>
     <button class="btn" onclick="savePlace()">Lägg till</button>
     <button class="btn sec" onclick="closeSheets()">Avbryt</button>

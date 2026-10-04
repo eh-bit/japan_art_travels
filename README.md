@@ -70,6 +70,15 @@ Sökningen kräver nät. Är du offline går det fortfarande att lägga till pla
 
 **Korta länkar (`maps.app.goo.gl`) går inte att läsa av** — Google tillåter inte att webbläsaren följer dem. Öppna länken i Safari först och kopiera den långa adressen, eller sök på namnet.
 
+### Bild på platsen
+
+Samma formulär har två sätt att sätta en bild:
+
+- **📷 Eget foto** — öppnar kameran eller kamerarullen. Bilden skalas ner till 900 px innan den sparas, så ett mobilfoto på 4 MB blir ungefär 100 kB.
+- **🖼 Från platsen** — hämtar foton som är tagna inom 400 meter från den valda platsen ur Wikimedia Commons. Kräver att du valt en plats i sökrutan först, och kräver nät. Fotografens namn och licens sparas med bilden och visas i hörnet.
+
+Bilderna ligger i enhetens `IndexedDB`, inte i `localStorage` — det är därför de inte äter upp det lilla lagringsutrymme som anteckningarna delar på. De fungerar offline när de väl är sparade.
+
 ---
 
 ## Bra att veta
@@ -77,6 +86,8 @@ Sökningen kräver nät. Är du offline går det fortfarande att lägga till pla
 **Tiderna är gissade.** Reseplanen säger bara "förmiddag/eftermiddag". Nyckeln står i `PLAN.md`. Alla tider går att ändra i appen — öppna en punkt, ändra, spara.
 
 **Säkerhetskopia.** Anteckningar, bockar och egna platser ligger i `localStorage` på just den enheten. Under **Mina → Viktig info → Säkerhetskopia** exporterar du en JSON-fil. Gör det före avresa, och använd den för att flytta mellan iPhone och iPad. Raderas appen från hemskärmen försvinner datan.
+
+**Foton följer inte med i säkerhetskopian.** JSON-filen rymmer inte bilddata i den storleken. Flyttar du till en annan enhet kommer platserna med, men bilderna får sättas om. Bilder du vill vara säker på att behålla — spara dem i kamerarullen också.
 
 **Inga notiser.** PWA:er på iOS kan inte väcka dig inför en programpunkt. Lägg sådant i Påminnelser.
 
