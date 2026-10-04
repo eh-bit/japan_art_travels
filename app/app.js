@@ -125,6 +125,116 @@ function drawActs() {
   }).join('') : '<div class="empty"><div class="e">✓</div><p>Inget matchar filtret.</p></div>';
 }
 
+/* ---------- Resrutten ---------- */
+/* Fast utsnitt runt de nio orterna. Konstanterna är desamma i build_assets.py,
+   så appen aldrig begär en kartruta som inte finns nedladdad. */
+const RZ = 7, RPAD = 64, RASPECT = .88, RTALL = 300;
+let routeV = null;
+
+function worldPx(lat, lng, z) {
+  const n = 2 ** z * 256, lr = lat * Math.PI / 180;
+  return { x: (lng + 180) / 360 * n,
+           y: (1 - Math.log(Math.tan(lr) + 1 / Math.cos(lr)) / Math.PI) / 2 * n };
+}
+function routeView(w, h) {
+  const pts = CITIES.map(c => Object.assign({ n: c.n }, worldPx(c.lat, c.lng, RZ)));
+  const xs = pts.map(p => p.x), ys = pts.map(p => p.y);
+  const vw = Math.max(...xs) - Math.min(...xs) + RPAD * 2, vh = vw * RASPECT;
+  const ox = Math.min(...xs) - RPAD, oy = (Math.min(...ys) + Math.max(...ys)) / 2 - vh / 2;
+  const s = Math.max(w / vw, h / vh);
+  // Remsan får vara precis så hög att alla nio punkter ryms med sina cirklar.
+  const short = Math.min(h, Math.round((Math.max(...ys) - Math.min(...ys)) * s) + 34);
+  return { pts, vw, vh, ox, oy, s, short, dx: (w - vw * s) / 2, dy: (h - vh * s) / 2 };
+}
+function routeMapHtml(w, h, opts) {
+  opts = opts || {};
+  const v = routeView(w, h);
+  let t = '';
+  for (let tx = Math.floor(v.ox / 256); tx <= Math.floor((v.ox + v.vw) / 256); tx++)
+    for (let ty = Math.floor(v.oy / 256); ty <= Math.floor((v.oy + v.vh) / 256); ty++)
+      t += `<img class="tl" src="tiles/${RZ}/${tx}/${ty}.png" alt=""
+             style="left:${Math.round(tx * 256 - v.ox)}px;top:${Math.round(ty * 256 - v.oy)}px">`;
+  const at = p => [(p.x - v.ox) * v.s + v.dx, (p.y - v.oy) * v.s + v.dy];
+  const line = v.pts.map(p => at(p).map(Math.round).join(',')).join(' ');
+  const dots = opts.dots === false ? '' : v.pts.map(p => {
+    const [x, y] = at(p);
+    return `<div class="rdot" style="left:${Math.round(x)}px;top:${Math.round(y)}px"
+      onclick="focusCity(${p.n})">${p.n}</div>`;
+  }).join('');
+  if (opts.keep) routeV = v;
+  return `<div class="rmap" style="height:${h}px;--dx:${v.dx}px;--dy:${v.dy}px;--s:${v.s}">
+    <div class="layer" style="width:${Math.round(v.vw)}px;height:${Math.round(v.vh)}px">${t}</div>
+    <div class="ovl"><svg>
+      <polyline points="${line}" fill="none" stroke="#fff" stroke-width="5"
+        stroke-linecap="round" stroke-linejoin="round" opacity=".75"/>
+      <polyline points="${line}" fill="none" stroke="#e07a5f" stroke-width="2.6"
+        stroke-dasharray="3,5.5" stroke-linecap="round"/></svg>${dots}</div>
+    ${opts.att === false ? '' : '<div class="satt">© OpenStreetMap</div>'}</div>`;
+}
+
+function drawRoute() {
+  document.getElementById('routecard').innerHTML =
+    `<div class="routecard" onclick="openRoute()">
+      <div class="rthumb">${routeMapHtml(84, 66, { dots: false, att: false })}</div>
+      <div class="rb">
+        <div class="lb">Resrutten</div>
+        <div class="t">${CITIES.length} städer · ${esc(CITIES[0].name)} → ${esc(CITIES[CITIES.length - 1].name)}</div>
+        <div class="m">Karta och fakta om varje stad</div>
+      </div><div class="arr">›</div></div>`;
+}
+function drawCities() {
+  document.getElementById('ruttSub').textContent =
+    `${CITIES.length} städer · ${CITIES[0].name} till ${CITIES[CITIES.length - 1].name}`;
+  document.getElementById('citylist').innerHTML = CITIES.map(c => `
+    <div class="city" id="city-${c.n}">
+      <div class="num">${c.n}</div>
+      <img src="img/${c.img}.jpg" alt="">
+      <div class="cb">
+        <h3>${esc(c.name)}</h3>
+        <div class="pill">${esc(c.dl)}</div>
+        <p>${esc(c.txt)}</p>
+        <div class="lk">
+          <button class="go" onclick="goDay(${c.d1})">Dagarna i appen</button>
+          <a class="ext" href="${c.url}" target="_blank" rel="noopener">${esc(c.lk)} ↗</a>
+        </div></div></div>`).join('');
+}
+function openRoute() {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('on'));
+  const sr = document.getElementById('s-rutt');
+  sr.classList.add('on');
+  document.getElementById('scroll').scrollTop = 0;
+  const el = document.getElementById('ruttmap');
+  el.innerHTML = routeMapHtml(el.clientWidth, RTALL, { keep: true });
+  sr.style.setProperty('--strip', routeV.short + 'px');
+}
+function closeRoute() {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('on'));
+  document.getElementById('s-plan').classList.add('on');
+  document.getElementById('scroll').scrollTop = 0;
+}
+function goDay(n) { closeRoute(); pick(n); }
+function setStrip(h) {
+  const el = document.querySelector('#ruttmap .rmap');
+  if (!el || !routeV) return;
+  el.style.height = h + 'px';
+  el.style.setProperty('--off', (-(RTALL - h) / 2) + 'px');
+}
+function focusCity(n) {
+  document.querySelectorAll('.city').forEach(e => e.classList.toggle('on', e.id === 'city-' + n));
+  document.querySelectorAll('.rdot').forEach(e => e.classList.toggle('on', +e.textContent === n));
+  const el = document.getElementById('city-' + n);
+  if (!el) return;
+  // Kartan måste ha sin slutliga höjd innan vi rullar, annars siktar webbläsaren
+  // på en position som försvinner när remsan krymper.
+  setStrip(routeV.short);
+  el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+// Kartan krymper till en remsa när man rullar, så den syns kvar bland stadskorten.
+document.getElementById('scroll').addEventListener('scroll', () => {
+  if (!document.getElementById('s-rutt').classList.contains('on') || !routeV) return;
+  setStrip(Math.max(routeV.short, RTALL - document.getElementById('scroll').scrollTop));
+}, { passive: true });
+
 /* ---------- Detaljpanel ---------- */
 function openAct(k) {
   cur = k; mediaMode = 'bild';
@@ -731,6 +841,7 @@ addEventListener('offline', drawBanners);
 buildIndex();
 sel = todayDay() || 1;
 drawChips(); drawFilters(); drawActs(); drawPlaces(); drawHotels(); drawLeaders();
+drawRoute(); drawCities();
 drawNow(); drawBanners(); backupInfo();
 loadPhotos().then(() => { drawPlaces(); backupInfo(); });
 setInterval(drawNow, 60000);

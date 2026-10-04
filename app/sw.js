@@ -1,4 +1,4 @@
-const VERSION = 'japan-2026-v4';
+const VERSION = 'japan-2026-v5';
 // Egna platsers kartrutor ligger separat så de inte försvinner vid uppdatering
 const TILES = 'japan-egna-kartrutor';
 const OSM = 'https://tile.openstreetmap.org/';

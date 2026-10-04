@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="UTF-8">
+<title>Japan 2026 — Resrutten, placering</title>
+<style>
+:root{
+  --primary:#205e5b; --primary-dark:#123c3a; --accent:#e07a5f; --accent-soft:#fbe4da;
+  --sage:#5f9e82; --sage-soft:#e3f1e9; --paper:#fbfaf7; --card:#fff;
+  --border:#e6e2d8; --ink:#2b2b2b; --ink-soft:#6b6b64; --ink-faint:#9a9a92;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+body{margin:0;padding:34px 24px 70px;background:#eeece6;
+  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,sans-serif;color:var(--ink);}
+
+.page{max-width:1420px;margin:0 auto;}
+.page>h1{font-size:30px;font-weight:800;letter-spacing:-.6px;color:var(--primary-dark);margin:0 0 6px;}
+.page>.lead{font-size:14.5px;color:var(--ink-soft);max-width:760px;line-height:1.55;margin:0 0 30px;}
+h2.sec{font-size:12px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:var(--accent);
+  margin:40px 0 16px;padding-bottom:8px;border-bottom:1px solid #dcd8cd;}
+
+.frames{display:flex;gap:30px;flex-wrap:wrap;align-items:flex-start;}
+.fr{width:360px;}
+.fr .cap{font-size:12.5px;color:var(--ink-soft);margin-top:12px;line-height:1.5;}
+.fr .cap b{color:var(--primary-dark);display:block;font-size:13.5px;margin-bottom:3px;font-weight:700;}
+
+/* telefonram */
+.phone{width:360px;height:720px;border-radius:40px;background:#1b1b1b;padding:9px;
+  box-shadow:0 12px 34px rgba(18,60,58,.26);position:relative;}
+.sc{width:100%;height:100%;border-radius:32px;overflow:hidden;background:var(--paper);
+  position:relative;display:flex;flex-direction:column;}
+.notch{position:absolute;top:9px;left:50%;transform:translateX(-50%);width:112px;height:26px;
+  background:#1b1b1b;border-radius:0 0 16px 16px;z-index:40;}
+.body{flex:1;overflow:hidden;padding:30px 18px 0;}
+.body.flush{padding-left:0;padding-right:0;}
+.body.flush>*{padding-left:18px;padding-right:18px;}
+.body.flush>.fullbleed{padding:0;}
+
+.hdr{display:flex;align-items:flex-end;justify-content:space-between;margin:4px 0 14px;gap:12px;}
+.hdr h1{font-size:30px;font-weight:800;letter-spacing:-.6px;margin:0;color:var(--primary-dark);}
+.hdr .day{font-size:12.5px;color:var(--ink-soft);margin-top:2px;}
+
+/* flikrad */
+.tabs{display:flex;background:rgba(251,250,247,.94);border-top:1px solid var(--border);
+  padding:8px 4px 12px;backdrop-filter:blur(12px);}
+.tabs button{flex:1;background:none;border:none;display:flex;flex-direction:column;align-items:center;
+  gap:3px;color:var(--ink-faint);font-size:10px;font-weight:600;font-family:inherit;cursor:pointer;padding:0;}
+.tabs button svg{width:23px;height:23px;}
+.tabs button.on{color:var(--primary);}
+
+/* dagchips */
+.chips{display:flex;gap:7px;overflow:hidden;margin-bottom:12px;}
+.chip{flex:none;background:#fff;border:1px solid var(--border);border-radius:13px;
+  padding:7px 11px;text-align:center;min-width:52px;}
+.chip .d{font-size:9px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:var(--ink-faint);}
+.chip .n{font-size:16px;font-weight:750;color:var(--primary-dark);line-height:1.15;}
+.chip.on{background:var(--primary-dark);border-color:var(--primary-dark);}
+.chip.on .d{color:rgba(255,255,255,.62);} .chip.on .n{color:#fff;}
+
+.dayhead{margin-bottom:11px;}
+.dayhead .t{font-size:18px;font-weight:750;color:var(--primary-dark);letter-spacing:-.3px;}
+.dayhead .m{font-size:12px;color:var(--ink-soft);margin-top:2px;}
+.act{display:flex;gap:11px;align-items:center;background:#fff;border:1px solid var(--border);
+  border-radius:16px;padding:9px;margin-bottom:9px;}
+.act .ph{width:58px;height:58px;border-radius:12px;flex:none;background:var(--sage-soft);
+  display:flex;align-items:center;justify-content:center;font-size:23px;}
+.act .t{font-size:14.5px;font-weight:650;line-height:1.25;}
+.act .m{font-size:11.5px;color:var(--ink-faint);margin-top:2px;}
+
+/* NYTT: resrutt-kortet */
+.routecard{display:flex;align-items:center;gap:12px;background:var(--primary-dark);
+  border-radius:18px;padding:10px;margin-bottom:14px;cursor:pointer;position:relative;overflow:hidden;
+  box-shadow:0 5px 18px rgba(18,60,58,.26);}
+.routecard .thumb{width:84px;height:66px;border-radius:12px;overflow:hidden;flex:none;position:relative;background:#dfe6e0;}
+.routecard .rb{flex:1;min-width:0;color:#fff;}
+.routecard .lb{font-size:9px;font-weight:800;letter-spacing:1.4px;text-transform:uppercase;color:var(--accent-soft);}
+.routecard .t{font-size:15.5px;font-weight:700;margin:3px 0 2px;letter-spacing:-.2px;}
+.routecard .m{font-size:11.5px;color:rgba(255,255,255,.72);line-height:1.35;}
+.routecard .arr{flex:none;color:rgba(255,255,255,.5);font-size:21px;padding-right:4px;}
+
+/* kartskärm */
+.mapwrap{position:relative;border-radius:0;overflow:hidden;background:#dfe6e0;margin-bottom:14px;}
+.mapwrap.round{border-radius:16px;}
+.tiles{position:absolute;top:0;left:0;transform-origin:0 0;}
+.tiles img{position:absolute;width:256px;height:256px;display:block;}
+.ovl{position:absolute;inset:0;}
+.ovl svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible;}
+.dot{position:absolute;width:25px;height:25px;border-radius:50%;background:var(--primary-dark);
+  border:2px solid var(--accent-soft);color:#fff;font-size:11.5px;font-weight:800;
+  display:flex;align-items:center;justify-content:center;transform:translate(-50%,-50%);
+  box-shadow:0 2px 6px rgba(0,0,0,.4);cursor:pointer;}
+.dot.on{background:var(--accent);border-color:#fff;width:29px;height:29px;font-size:13px;}
+.dotlb{position:absolute;transform:translate(-50%,0);font-size:9.5px;font-weight:700;color:var(--primary-dark);
+  background:rgba(255,255,255,.88);padding:1px 5px;border-radius:5px;white-space:nowrap;margin-top:3px;}
+.mapcred{position:absolute;right:5px;bottom:4px;font-size:8px;color:#4a4a44;
+  background:rgba(255,255,255,.72);padding:1px 5px;border-radius:4px;}
+
+/* stadskort */
+.city{display:flex;gap:11px;background:#fff;border:1px solid var(--border);border-radius:16px;
+  padding:10px;margin-bottom:10px;position:relative;}
+.city .num{position:absolute;top:-7px;left:-7px;width:23px;height:23px;border-radius:50%;
+  background:var(--primary-dark);color:#fff;font-size:11px;font-weight:800;
+  display:flex;align-items:center;justify-content:center;border:2px solid var(--paper);}
+.city img{width:78px;height:92px;border-radius:12px;object-fit:cover;flex:none;background:var(--sage-soft);}
+.city .cb{flex:1;min-width:0;}
+.city h3{font-size:15.5px;font-weight:750;margin:0;color:var(--primary-dark);letter-spacing:-.2px;}
+.city .pill{display:inline-block;background:var(--sage-soft);color:var(--primary);font-size:9.5px;
+  font-weight:700;padding:2px 7px;border-radius:6px;margin:4px 0 5px;}
+.city p{font-size:11.5px;line-height:1.46;color:var(--ink-soft);margin:0 0 7px;}
+.city .lk{display:flex;gap:6px;flex-wrap:wrap;}
+.city .lk a{font-size:10.5px;font-weight:700;text-decoration:none;padding:4px 9px;border-radius:8px;}
+.city .lk .go{background:var(--primary);color:#fff;}
+.city .lk .ext{background:#fff;border:1px solid var(--border);color:var(--ink-soft);}
+
+/* anropspil */
+.callout{position:absolute;z-index:50;background:var(--accent);color:#fff;font-size:11.5px;font-weight:700;
+  padding:6px 11px;border-radius:9px;box-shadow:0 4px 12px rgba(224,122,95,.45);white-space:nowrap;}
+.callout:after{content:"";position:absolute;left:18px;bottom:-5px;
+  border:5px solid transparent;border-top-color:var(--accent);border-bottom:0;}
+.ring{outline:2px solid var(--accent);outline-offset:3px;}
+
+.note{background:#fff;border:1px solid var(--border);border-left:3px solid var(--accent);
+  border-radius:10px;padding:14px 16px;margin:18px 0 0;max-width:720px;}
+.note p{font-size:13px;line-height:1.6;color:var(--ink-soft);margin:0 0 8px;}
+.note p:last-child{margin:0;}
+.note b{color:var(--primary-dark);}
+</style>
+</head>
+<body>
+<div class="page">
+
+<h1>Resrutten i appen</h1>
+<p class="lead">Guidens översiktskarta med de nio städerna, flyttad in i appen och kompletterad med
+stadsfakta. Nedan: var ingången ligger, och vad den öppnar.</p>
+
+<h2 class="sec">Förslag — ingången ligger överst i Resplan</h2>
+
+<div class="frames">
+
+  <!-- 1. PLACERING -->
+  <div class="fr">
+    <div class="phone"><div class="notch"></div><div class="sc">
+      <div class="body">
+        <div class="hdr"><div><h1>Resplan</h1><div class="day">16 dagar · 12–27 oktober 2026</div></div></div>
+
+        <div class="routecard ring" style="position:relative">
+          <div class="thumb" id="thumb1"></div>
+          <div class="rb">
+            <div class="lb">Resrutten</div>
+            <div class="t">9 städer · Kyoto → Tokyo</div>
+            <div class="m">Karta och fakta om varje stad</div>
+          </div>
+          <div class="arr">›</div>
+        </div>
+
+        <div class="chips">
+          <div class="chip on"><div class="d">Mån</div><div class="n">12</div></div>
+          <div class="chip"><div class="d">Tis</div><div class="n">13</div></div>
+          <div class="chip"><div class="d">Ons</div><div class="n">14</div></div>
+          <div class="chip"><div class="d">Tor</div><div class="n">15</div></div>
+          <div class="chip"><div class="d">Fre</div><div class="n">16</div></div>
+        </div>
+        <div class="dayhead"><div class="t">Flyg till Kyoto</div><div class="m">Dag 1 · 12 okt · Avresa</div></div>
+        <div class="act"><div class="ph">✈️</div><div><div class="t">Samling Arlanda</div><div class="m">09:00 · Terminal 5</div></div></div>
+        <div class="act"><div class="ph">🛫</div><div><div class="t">Avgång Stockholm</div><div class="m">11:05 · via Helsingfors</div></div></div>
+      </div>
+      <div class="tabs">
+        <button><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span>Nu</span></button>
+        <button class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4.5" width="18" height="16" rx="2.5"/><path d="M3 9h18M8 2.5v4M16 2.5v4"/></svg><span>Resplan</span></button>
+        <button><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s7-5.4 7-10.5A7 7 0 0 0 5 10.5C5 15.6 12 21 12 21z"/><circle cx="12" cy="10.5" r="2.5"/></svg><span>Mina</span></button>
+      </div>
+      <div class="callout" style="top:52px;left:243px;">Här</div>
+    </div></div>
+    <div class="cap"><b>1 · Ingången</b>Ett kort överst i Resplan, ovanför dagväljaren. Det tar 76 px
+    och syns varje gång du öppnar fliken — men knuffar inte undan dagarna.</div>
+  </div>
+
+  <!-- 2. KARTAN -->
+  <div class="fr">
+    <div class="phone"><div class="notch"></div><div class="sc">
+      <div class="body flush">
+        <div class="hdr"><div><h1>Resrutten</h1><div class="day">9 städer · 2 150 km med tåg</div></div></div>
+        <div class="fullbleed">
+          <div class="mapwrap" id="map2" style="height:300px">
+            <div class="mapcred">© OpenStreetMap</div>
+          </div>
+        </div>
+        <div class="city">
+          <div class="num">1</div>
+          <img src="https://commons.wikimedia.org/wiki/Special:FilePath/Kyoto,_Japan_(49667780482).jpg?width=200" alt="">
+          <div class="cb">
+            <h3>Kyoto</h3>
+            <div class="pill">Dag 1–3 · 12–14 okt</div>
+            <p>Japans kejserliga huvudstad 794–1868 och landets kulturella hjärta, med över 1600 tempel
+            och 400 helgedomar.</p>
+            <div class="lk"><a class="go">Dagarna i appen</a><a class="ext">Turistinfo ↗</a></div>
+          </div>
+        </div>
+        <div class="city">
+          <div class="num">2</div>
+          <img src="https://commons.wikimedia.org/wiki/Special:FilePath/Osaka_Dotonbori_Ebisu_Bridge.jpg?width=200" alt="">
+          <div class="cb"><h3>Osaka</h3><div class="pill">Dag 4–5 · 15–16 okt</div>
+          <p>Japans tredje största stad — gatumat, neon och nöjesdistriktet Dotonbori.</p></div>
+        </div>
+      </div>
+      <div class="tabs">
+        <button><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span>Nu</span></button>
+        <button class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4.5" width="18" height="16" rx="2.5"/><path d="M3 9h18M8 2.5v4M16 2.5v4"/></svg><span>Resplan</span></button>
+        <button><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s7-5.4 7-10.5A7 7 0 0 0 5 10.5C5 15.6 12 21 12 21z"/><circle cx="12" cy="10.5" r="2.5"/></svg><span>Mina</span></button>
+      </div>
+    </div></div>
+    <div class="cap"><b>2 · Kartan</b>Samma nio numrerade punkter och streckade rutt som i guiden.
+    Kartan går kant i kant. Tryck på en siffra så hoppar listan till den staden.</div>
+  </div>
+
+  <!-- 3. STÄDERNA -->
+  <div class="fr">
+    <div class="phone"><div class="notch"></div><div class="sc">
+      <div class="body">
+        <div class="mapwrap round" id="map3" style="height:92px;margin:0 0 14px">
+          <div class="mapcred">© OSM</div>
+        </div>
+        <div class="city">
+          <div class="num">4</div>
+          <img src="https://commons.wikimedia.org/wiki/Special:FilePath/Itsukushima_Shrine_Torii_Gate_(13890465459).jpg?width=200" alt="">
+          <div class="cb"><h3>Hiroshima</h3><div class="pill">Dag 6–7 · 17–18 okt</div>
+          <p>Fredsparken och Atombombskupolen — men idag en levande, grön stad med spårvagnar.
+          Strax utanför ligger Miyajima med sin ”flytande” torii.</p>
+          <div class="lk"><a class="go">Dagarna i appen</a><a class="ext">Turistinfo ↗</a></div></div>
+        </div>
+        <div class="city">
+          <div class="num">5</div>
+          <img src="https://commons.wikimedia.org/wiki/Special:FilePath/Odawara-jo.jpg?width=200" alt="">
+          <div class="cb"><h3>Odawara / Mishima</h3><div class="pill">Dag 8 · 19 okt</div>
+          <p>Hojoklanens borgstad och en station på gamla Tokaido-vägen. Kvällen vid foten av Fuji
+          i Mishima, känt för sina varma källor.</p>
+          <div class="lk"><a class="go">Dagarna i appen</a><a class="ext">Turistinfo ↗</a></div></div>
+        </div>
+        <div class="city">
+          <div class="num">6</div>
+          <img src="https://commons.wikimedia.org/wiki/Special:FilePath/Matsumoto_Castle_Keep_Tower.jpg?width=200" alt="">
+          <div class="cb"><h3>Matsumoto</h3><div class="pill">Dag 9–10 · 20–21 okt</div>
+          <p>Stad i Japanska alperna med en välbevarad svart 1500-talsborg — en av bara tolv
+          originalborgar i Japan.</p>
+          <div class="lk"><a class="go">Dagarna i appen</a><a class="ext">Turistinfo ↗</a></div></div>
+        </div>
+      </div>
+      <div class="tabs">
+        <button><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span>Nu</span></button>
+        <button class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4.5" width="18" height="16" rx="2.5"/><path d="M3 9h18M8 2.5v4M16 2.5v4"/></svg><span>Resplan</span></button>
+        <button><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s7-5.4 7-10.5A7 7 0 0 0 5 10.5C5 15.6 12 21 12 21z"/><circle cx="12" cy="10.5" r="2.5"/></svg><span>Mina</span></button>
+      </div>
+    </div></div>
+    <div class="cap"><b>3 · Städerna</b>När du rullar krymper kartan till en remsa som sitter kvar överst,
+    så du aldrig tappar bort var i landet du är. Texterna är hämtade ur guiden.</div>
+  </div>
+
+</div>
+
+<h2 class="sec">Alternativet — en fjärde flik</h2>
+
+<div class="frames">
+  <div class="fr" style="width:400px">
+    <div style="background:#fff;border:1px solid var(--border);border-radius:20px;padding:20px;">
+      <div style="font-size:11px;font-weight:800;letter-spacing:1.3px;text-transform:uppercase;color:var(--ink-faint);margin-bottom:10px;">Idag — 3 flikar</div>
+      <div class="tabs" style="border:1px solid var(--border);border-radius:14px;margin-bottom:22px;">
+        <button class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span>Nu</span></button>
+        <button><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4.5" width="18" height="16" rx="2.5"/><path d="M3 9h18M8 2.5v4M16 2.5v4"/></svg><span>Resplan</span></button>
+        <button><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s7-5.4 7-10.5A7 7 0 0 0 5 10.5C5 15.6 12 21 12 21z"/><circle cx="12" cy="10.5" r="2.5"/></svg><span>Mina</span></button>
+      </div>
+      <div style="font-size:11px;font-weight:800;letter-spacing:1.3px;text-transform:uppercase;color:var(--ink-faint);margin-bottom:10px;">Med egen flik — 4 flikar</div>
+      <div class="tabs" style="border:1px solid var(--border);border-radius:14px;">
+        <button class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span>Nu</span></button>
+        <button><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4.5" width="18" height="16" rx="2.5"/><path d="M3 9h18M8 2.5v4M16 2.5v4"/></svg><span>Resplan</span></button>
+        <button style="color:var(--accent)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 3.5 3 6v15l6-2.5 6 2.5 6-2.5V3.5L15 6 9 3.5z"/><path d="M9 3.5V18.5M15 6v15"/></svg><span>Rutten</span></button>
+        <button><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s7-5.4 7-10.5A7 7 0 0 0 5 10.5C5 15.6 12 21 12 21z"/><circle cx="12" cy="10.5" r="2.5"/></svg><span>Mina</span></button>
+      </div>
+    </div>
+    <div class="cap"><b>Fjärde flik</b>Syns hela tiden, men tar en permanent plats i raden för något
+    du tittar på några gånger — inte dagligen. Knapparna blir också smalare.</div>
+  </div>
+
+  <div class="fr" style="width:620px">
+    <div class="note">
+      <p><b>Min rekommendation: kortet i Resplan.</b> Resplan är redan fliken där du orienterar dig
+      i resan, men den slänger in dig rakt i en enskild dag utan att visa helheten. Kortet fyller
+      precis det hålet, på den plats där frågan uppstår.</p>
+      <p><b>Kartan blir liten i filstorlek.</b> Hela rutten Hiroshima–Tokyo ryms i tolv kartrutor på
+      zoomnivå 7 — ungefär 300 kB. Appen har redan 169 rutor, så det här märks inte.</p>
+      <p><b>Punkterna är klickbara åt båda håll.</b> Siffran på kartan rullar till stadens kort,
+      och kortets knapp hoppar vidare till rätt dag i Resplan. Samma koppling som i guiden,
+      där siffrorna länkar till dagsidorna.</p>
+      <p>Säg till om du hellre vill ha den fjärde fliken, eller om kartan ska ligga på Nu-sidan
+      i stället — då visar jag var ni är just nu i rutten.</p>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<script>
+const CITIES = [
+  { n:1, name:'Kyoto',      lat:35.0116, lng:135.7681 },
+  { n:2, name:'Osaka',      lat:34.6937, lng:135.5023 },
+  { n:3, name:'Kobe',       lat:34.6901, lng:135.1955 },
+  { n:4, name:'Hiroshima',  lat:34.3853, lng:132.4553 },
+  { n:5, name:'Odawara',    lat:35.1900, lng:139.1000 },
+  { n:6, name:'Matsumoto',  lat:36.2381, lng:137.9720 },
+  { n:7, name:'Karuizawa',  lat:36.3487, lng:138.6328 },
+  { n:8, name:'Maebashi',   lat:36.3895, lng:139.0634 },
+  { n:9, name:'Tokyo',      lat:35.6762, lng:139.6503 }
+];
+const Z = 7;
+
+function toPx(lat, lng, z) {
+  const n = Math.pow(2, z) * 256;
+  const r = lat * Math.PI / 180;
+  return {
+    x: (lng + 180) / 360 * n,
+    y: (1 - Math.log(Math.tan(r) + 1 / Math.cos(r)) / Math.PI) / 2 * n
+  };
+}
+
+// Ritar kartan som ett rutnät av <img> i stället för en iframe, så rutorna kan
+// cachas för offline-bruk precis som aktivitetskartorna i appen.
+function drawMap(el, dispW, dispH, opts) {
+  opts = opts || {};
+  const pts = CITIES.map(c => Object.assign({}, c, toPx(c.lat, c.lng, Z)));
+  const pad = opts.pad === undefined ? 52 : opts.pad;
+  const xs = pts.map(p => p.x), ys = pts.map(p => p.y);
+  const bw = Math.max(...xs) - Math.min(...xs) + pad * 2;
+  const s = dispW / bw;
+  const vw = bw, vh = dispH / s;
+  const ox = (Math.min(...xs) + Math.max(...xs)) / 2 - vw / 2;
+  const oy = (Math.min(...ys) + Math.max(...ys)) / 2 - vh / 2;
+
+  const tl = document.createElement('div');
+  tl.className = 'tiles';
+  tl.style.cssText = `width:${vw}px;height:${vh}px;transform:scale(${s})`;
+  for (let tx = Math.floor(ox / 256); tx <= Math.floor((ox + vw) / 256); tx++) {
+    for (let ty = Math.floor(oy / 256); ty <= Math.floor((oy + vh) / 256); ty++) {
+      const img = document.createElement('img');
+      img.src = `https://tile.openstreetmap.org/${Z}/${tx}/${ty}.png`;
+      img.style.left = (tx * 256 - ox) + 'px';
+      img.style.top = (ty * 256 - oy) + 'px';
+      tl.appendChild(img);
+    }
+  }
+  el.insertBefore(tl, el.firstChild);
+
+  const ov = document.createElement('div');
+  ov.className = 'ovl';
+  const d = pts.map(p => `${(p.x - ox) * s},${(p.y - oy) * s}`).join(' ');
+  ov.innerHTML = `<svg>
+    <polyline points="${d}" fill="none" stroke="#fff" stroke-width="5"
+      stroke-linecap="round" stroke-linejoin="round" opacity=".75"/>
+    <polyline points="${d}" fill="none" stroke="#e07a5f" stroke-width="2.6"
+      stroke-dasharray="3,5.5" stroke-linecap="round"/></svg>`;
+  if (!opts.strip) {
+    pts.forEach(p => {
+      const dot = document.createElement('div');
+      dot.className = 'dot' + (p.n === 4 && opts.active ? ' on' : '');
+      dot.textContent = p.n;
+      dot.style.left = ((p.x - ox) * s) + 'px';
+      dot.style.top = ((p.y - oy) * s) + 'px';
+      ov.appendChild(dot);
+      if (opts.labels) {
+        const lb = document.createElement('div');
+        lb.className = 'dotlb';
+        lb.textContent = p.name;
+        lb.style.left = ((p.x - ox) * s) + 'px';
+        lb.style.top = ((p.y - oy) * s + 13) + 'px';
+        ov.appendChild(lb);
+      }
+    });
+  }
+  el.insertBefore(ov, el.querySelector('.mapcred'));
+  el.style.width = dispW + 'px';
+  el.style.height = dispH + 'px';
+}
+
+drawMap(document.getElementById('thumb1'), 84, 66, { pad: 26, strip: true });
+drawMap(document.getElementById('map2'), 342, 300, { pad: 64 });
+drawMap(document.getElementById('map3'), 324, 92, { pad: 30, active: true });
+</script>
+</body>
+</html>

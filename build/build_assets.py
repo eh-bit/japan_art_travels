@@ -9,6 +9,7 @@ APP = os.path.join(HERE, '..', 'app')
 UA = 'JapanReseguide/1.0 (privat reseapp; kontakt via GitHub Copilot-anvandare)'
 
 days = json.load(open(os.path.join(HERE, 'itinerary.json'), encoding='utf-8'))
+cities = json.load(open(os.path.join(HERE, 'cities.json'), encoding='utf-8'))
 
 
 def get(url, tries=3):
@@ -29,13 +30,16 @@ for d in days:
     for a in d['acts']:
         if a.get('img'):
             imgs[a['img']] = a['src']
+for c in cities:
+    imgs[c['img']] = c['src']
 
 print(f'Bilder: {len(imgs)}')
 for slug, src in sorted(imgs.items()):
     out = os.path.join(APP, 'img', slug + '.jpg')
     if os.path.exists(out):
         continue
-    raw = get('https://commons.wikimedia.org/wiki/Special:FilePath/' + src + '?width=1000')
+    wide = 420 if slug.startswith('stad-') else 1000
+    raw = get('https://commons.wikimedia.org/wiki/Special:FilePath/' + src + f'?width={wide}')
     im = Image.open(io.BytesIO(raw))
     if im.mode in ('RGBA', 'P', 'LA'):
         bg = Image.new('RGB', im.size, (255, 255, 255))
@@ -44,7 +48,7 @@ for slug, src in sorted(imgs.items()):
         im = bg
     else:
         im = im.convert('RGB')
-    im.thumbnail((900, 900), Image.LANCZOS)
+    im.thumbnail((420, 420) if slug.startswith('stad-') else (900, 900), Image.LANCZOS)
     im.save(out, 'JPEG', quality=80, optimize=True)
     print('  ', slug, f'{os.path.getsize(out)//1024} kB')
     time.sleep(0.2)
@@ -73,6 +77,29 @@ for d in days:
     for a in d['acts']:
         if a.get('lat') is not None:
             need.update(tiles_for(a['lat'], a['lng']))
+
+# Översiktskartan: ett fast utsnitt runt alla nio orter. Samma konstanter finns
+# i app.js så att appen aldrig begär en ruta som inte laddats hem.
+RZ, RPAD, RASPECT = 7, 64, 0.88
+
+
+def world_px(lat, lng, z):
+    n = 2 ** z * 256
+    lr = math.radians(lat)
+    return ((lng + 180) / 360 * n,
+            (1 - math.log(math.tan(lr) + 1 / math.cos(lr)) / math.pi) / 2 * n)
+
+
+pts = [world_px(c['lat'], c['lng'], RZ) for c in cities]
+xs, ys = [p[0] for p in pts], [p[1] for p in pts]
+vw = max(xs) - min(xs) + RPAD * 2
+vh = vw * RASPECT
+ox = min(xs) - RPAD
+oy = (min(ys) + max(ys)) / 2 - vh / 2
+for tx in range(math.floor(ox / 256), math.floor((ox + vw) / 256) + 1):
+    for ty in range(math.floor(oy / 256), math.floor((oy + vh) / 256) + 1):
+        need.add((RZ, tx, ty))
+print(f'Ruttöversikt: zoom {RZ}, utsnitt {int(vw)}×{int(vh)} px')
 
 print(f'Kartrutor: {len(need)}')
 new = 0
@@ -115,8 +142,11 @@ print('Ikoner: 180, 192, 512')
 for d in days:
     for a in d['acts']:
         a.pop('src', None)
+for c in cities:
+    c.pop('src', None)
 open(os.path.join(APP, 'data.js'), 'w', encoding='utf-8').write(
-    'window.DAYS=' + json.dumps(days, ensure_ascii=False, separators=(',', ':')) + ';\n')
+    'window.DAYS=' + json.dumps(days, ensure_ascii=False, separators=(',', ':')) + ';\n' +
+    'window.CITIES=' + json.dumps(cities, ensure_ascii=False, separators=(',', ':')) + ';\n')
 print('data.js skriven')
 
 

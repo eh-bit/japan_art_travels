@@ -3,15 +3,18 @@
 const fs = require('fs');
 const html = fs.readFileSync(__dirname + '/../mockup.html', 'utf8');
 
-const start = html.indexOf('const DAYS=[');
-const from = html.indexOf('[', start);
-let depth = 0, end = -1;
-for (let i = from; i < html.length; i++) {
-  const c = html[i];
-  if (c === '[') depth++;
-  else if (c === ']') { depth--; if (depth === 0) { end = i + 1; break; } }
+function pluck(name) {
+  const from = html.indexOf('[', html.indexOf('const ' + name + '=['));
+  let depth = 0;
+  for (let i = from; i < html.length; i++) {
+    if (html[i] === '[') depth++;
+    else if (html[i] === ']' && --depth === 0) return eval(html.slice(from, i + 1));
+  }
+  throw new Error('hittade inte ' + name);
 }
-const DAYS = eval(html.slice(from, end));
+
+const DAYS = pluck('DAYS');
+const CITIES = pluck('CITIES');
 
 const SLUG = {
   'NinomaruPalace.jpg': 'nijo',
@@ -58,8 +61,15 @@ DAYS.forEach(d => d.acts.forEach(a => {
   a.img = s;          // appen laddar img/<slug>.jpg lokalt
 }));
 
+CITIES.forEach(c => {
+  c.src = c.img;
+  c.img = 'stad-' + c.n;
+});
+
 fs.writeFileSync(__dirname + '/itinerary.json', JSON.stringify(DAYS, null, 1));
+fs.writeFileSync(__dirname + '/cities.json', JSON.stringify(CITIES, null, 1));
 console.log('dagar:', DAYS.length);
+console.log('städer:', CITIES.length);
 console.log('aktiviteter:', DAYS.reduce((n, d) => n + d.acts.length, 0));
 console.log('bilder:', new Set(DAYS.flatMap(d => d.acts.filter(a => a.img).map(a => a.img))).size);
 console.log('platser med koordinat:', DAYS.reduce((n, d) => n + d.acts.filter(a => a.lat != null).length, 0));

@@ -77,6 +77,53 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Robot
 
 .chips{display:flex;gap:7px;overflow-x:auto;padding:2px 18px 12px;margin:0 -18px;scrollbar-width:none;}
 .chips::-webkit-scrollbar{display:none;}
+
+/* Resrutten */
+.routecard{display:flex;align-items:center;gap:12px;background:var(--primary-dark);border-radius:18px;
+  padding:10px;margin-bottom:14px;cursor:pointer;box-shadow:0 5px 18px rgba(18,60,58,.26);}
+.routecard .rthumb{width:84px;height:66px;border-radius:12px;overflow:hidden;flex:none;
+  position:relative;background:#dfe6e0;}
+.routecard .rb{flex:1;min-width:0;color:#fff;}
+.routecard .lb{font-size:9px;font-weight:800;letter-spacing:1.4px;text-transform:uppercase;color:var(--accent-soft);}
+.routecard .t{font-size:15.5px;font-weight:700;margin:3px 0 2px;letter-spacing:-.2px;}
+.routecard .m{font-size:11.5px;color:rgba(255,255,255,.72);line-height:1.35;}
+.routecard .arr{flex:none;color:rgba(255,255,255,.5);font-size:21px;padding-right:4px;}
+
+.rmap{position:relative;overflow:hidden;background:#dfe6e0;}
+.rmap img.tl{position:absolute;width:256px;height:256px;max-width:none;}
+.rmap .layer{position:absolute;top:0;left:0;transform-origin:0 0;
+  transform:translate(var(--dx),calc(var(--dy) + var(--off,0px))) scale(var(--s));}
+.rmap .ovl{position:absolute;inset:0;pointer-events:none;transform:translateY(var(--off,0px));}
+.rmap .ovl svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible;}
+.rdot{position:absolute;width:25px;height:25px;border-radius:50%;background:var(--primary-dark);
+  border:2px solid var(--accent-soft);color:#fff;font-size:11.5px;font-weight:800;
+  display:flex;align-items:center;justify-content:center;transform:translate(-50%,-50%);
+  box-shadow:0 2px 6px rgba(0,0,0,.4);cursor:pointer;pointer-events:auto;}
+.rdot.on{background:var(--accent);border-color:#fff;width:29px;height:29px;font-size:13px;}
+.rstrip{position:sticky;top:0;z-index:5;margin:0 -18px 14px;}
+/* Täcker springan mellan skärmkanten och den fastklistrade kartan. */
+.rstrip:before{content:"";position:absolute;left:0;right:0;bottom:100%;height:24px;background:var(--paper);}
+
+.city{display:flex;gap:11px;background:#fff;border:1px solid var(--border);border-radius:16px;
+  padding:10px;margin-bottom:10px;position:relative;scroll-margin-top:calc(var(--strip,140px) + 16px);}
+.city .num{position:absolute;top:-7px;left:-7px;width:23px;height:23px;border-radius:50%;
+  background:var(--primary-dark);color:#fff;font-size:11px;font-weight:800;
+  display:flex;align-items:center;justify-content:center;border:2px solid var(--paper);}
+.city.on{border-color:var(--accent);}
+.city.on .num{background:var(--accent);}
+.city img{width:78px;height:96px;border-radius:12px;object-fit:cover;flex:none;background:var(--sage-soft);}
+.city .cb{flex:1;min-width:0;}
+.city h3{font-size:15.5px;font-weight:750;margin:0;color:var(--primary-dark);letter-spacing:-.2px;}
+.city .pill{display:inline-block;background:var(--sage-soft);color:var(--primary);font-size:9.5px;
+  font-weight:700;padding:2px 7px;border-radius:6px;margin:4px 0 5px;}
+.city p{font-size:11.5px;line-height:1.46;color:var(--ink-soft);margin:0 0 7px;}
+.city .lk{display:flex;gap:6px;flex-wrap:wrap;}
+.city .lk a,.city .lk button{font:inherit;font-size:10.5px;font-weight:700;text-decoration:none;
+  padding:5px 9px;border-radius:8px;border:0;cursor:pointer;}
+.city .lk .go{background:var(--primary);color:#fff;}
+.city .lk .ext{background:#fff;border:1px solid var(--border);color:var(--ink-soft);}
+.backbtn{display:inline-flex;align-items:center;gap:5px;background:none;border:0;font:inherit;
+  font-size:13px;font-weight:650;color:var(--primary);cursor:pointer;padding:0;margin:0 0 6px;}
 .chip{flex:none;border:1px solid var(--border);background:#fff;border-radius:12px;padding:7px 11px;text-align:center;cursor:pointer;min-width:52px;}
 .chip .d{font-size:14px;font-weight:700;color:var(--primary-dark);line-height:1.1;}
 .chip .dt{font-size:9.5px;color:var(--ink-faint);margin-top:1px;}
@@ -257,11 +304,21 @@ textarea{min-height:82px;resize:vertical;line-height:1.45;}
 
     <section class="screen" id="s-plan">
       <div class="hdr"><div><h1>Resplan</h1><div class="day">16 dagar · 12–27 oktober 2026</div></div></div>
+      <div id="routecard"></div>
       <div class="chips" id="chips"></div>
       <div class="fchips" id="filtchips"></div>
       <div class="dayhead" id="dayhead"></div>
       <div id="acts"></div>
       <button class="addbtn" onclick="openAdd()">+ Lägg till egen punkt</button>
+    </section>
+
+    <section class="screen" id="s-rutt">
+      <button class="backbtn" onclick="closeRoute()">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 5l-7 7 7 7"/></svg>
+        Resplan</button>
+      <div class="hdr"><div><h1>Resrutten</h1><div class="day" id="ruttSub"></div></div></div>
+      <div class="rstrip" id="ruttmap"></div>
+      <div id="citylist"></div>
     </section>
 
     <section class="screen" id="s-mina">
