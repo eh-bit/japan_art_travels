@@ -87,7 +87,11 @@ function drawChips() {
     `<div class="chip ${d.n === sel ? 'sel' : ''} ${d.n === td ? 'today' : ''}" onclick="pick(${d.n})">
       <div class="d">${d.n}</div><div class="dt">${d.dl.split(' ')[0]}/10</div></div>`).join('');
   const el = document.querySelector('.chip.sel');
-  if (el) el.scrollIntoView({ inline: 'center', block: 'nearest' });
+  // Rullar bara chipsraden i sidled. scrollIntoView skulle dra med sig hela sidan.
+  if (el) {
+    const c = document.getElementById('chips');
+    c.scrollLeft = el.offsetLeft - (c.clientWidth - el.offsetWidth) / 2;
+  }
 }
 function pick(n) { sel = n; valdSjalv = true; drawChips(); drawActs(); }
 function drawFilters() {
@@ -216,7 +220,15 @@ function closeRoute() {
   document.getElementById('s-plan').classList.add('on');
   document.getElementById('scroll').scrollTop = 0;
 }
-function goDay(n) { closeRoute(); pick(n); }
+function goDay(n) {
+  closeRoute();
+  pick(n);
+  // Dagen ritas om först — nollställ därefter, annars kan webbläsaren
+  // återställa den gamla rullningspositionen när innehållet byts ut.
+  const s = document.getElementById('scroll');
+  s.scrollTop = 0;
+  requestAnimationFrame(() => { s.scrollTop = 0; });
+}
 function setStrip(h) {
   const el = document.querySelector('#ruttmap .rmap');
   if (!el || !routeV) return;
@@ -369,30 +381,38 @@ const shDirty = () => shBase !== null && shSnapshot() !== shBase;
 
 (function dragToClose() {
   const sh = document.getElementById('sheet');
-  let y0 = null, dy = 0;
-  sh.addEventListener('pointerdown', e => {
+  let y0 = null, dy = 0, aktiv = false;
+  sh.addEventListener('touchstart', e => {
+    y0 = null;
     // Bara från toppen av kortet, och inte när man träffar något man kan trycka på.
-    if (sh.scrollTop > 0 || e.target.closest('button,a,input,select,textarea,.tg')) return;
-    y0 = e.clientY; dy = 0;
-    sh.style.transition = 'none';
-  });
-  sh.addEventListener('pointermove', e => {
+    if (e.touches.length !== 1 || sh.scrollTop > 0 ||
+        e.target.closest('button,a,input,select,textarea,.tg')) return;
+    y0 = e.touches[0].clientY; dy = 0; aktiv = false;
+  }, { passive: true });
+  sh.addEventListener('touchmove', e => {
     if (y0 === null) return;
-    dy = Math.max(0, e.clientY - y0);
+    const d = e.touches[0].clientY - y0;
+    if (!aktiv) {
+      if (d < 8) return;                  // vänta tills riktningen är tydlig
+      aktiv = true;
+      sh.style.transition = 'none';
+    }
+    dy = Math.max(0, d);
+    e.preventDefault();                   // annars tar Safari över gesten som rullning
     sh.style.transform = `translateY(${dy}px)`;
-  });
+  }, { passive: false });
   const slapp = () => {
     if (y0 === null) return;
     sh.style.transition = '';
     sh.style.transform = '';
-    if (dy > 90) {
+    if (aktiv && dy > 90) {
       if (shDirty()) toast('Du har ändringar — spara eller stäng.');
       else closeSheets();
     }
-    y0 = null;
+    y0 = null; aktiv = false;
   };
-  sh.addEventListener('pointerup', slapp);
-  sh.addEventListener('pointercancel', slapp);
+  sh.addEventListener('touchend', slapp);
+  sh.addEventListener('touchcancel', slapp);
 })();
 
 /* ---------- Egna platser ---------- */
