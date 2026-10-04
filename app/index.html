@@ -108,7 +108,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Robot
   background:linear-gradient(var(--paper),rgba(251,250,247,0));}
 
 .city{display:flex;gap:11px;background:#fff;border:1px solid var(--border);border-radius:16px;
-  padding:10px;margin-bottom:10px;position:relative;scroll-margin-top:calc(var(--strip,140px) + 16px);}
+  padding:10px;margin-bottom:10px;position:relative;
+  /* Kartan fastnar nedanf\u00f6r sk\u00e4rmens s\u00e4kerhetsmarginal, s\u00e5 den m\u00e5ste r\u00e4knas med h\u00e4r. */
+  scroll-margin-top:calc(var(--top) + var(--strip,140px) + 24px);}
 .city .num{position:absolute;top:-7px;left:-7px;width:23px;height:23px;border-radius:50%;
   background:var(--primary-dark);color:#fff;font-size:11px;font-weight:800;
   display:flex;align-items:center;justify-content:center;border:2px solid var(--paper);}
