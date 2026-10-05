@@ -48,7 +48,13 @@ Två användningar:
 | | Zoom | Storlek | Antal rutor |
 |---|---|---|---|
 | En plats i detaljvyn | 15 | 440×260 px | 4–6 per plats |
+| Ett stadskort | 12 | 560×210 px | 3–8 per stad |
 | Hela resrutten | 7 | utsnitt runt alla orter | ~12 totalt |
+
+**Håll zoomnivå, bredd och höjd som namngivna konstanter delade mellan byggskript
+och app** (till exempel `CYZ, CYW, CYH = 12, 560, 210`), inte som bokstavliga tal
+på båda ställena. En konstant som glöms bort på det ena stället ger tysta 404:or
+som bara syns offline — bygget laddade aldrig hem rutorna för den zoomnivån.
 
 Ett program med 36 platser landar på knappt 200 rutor, cirka 5 MB. Var snäll mot
 OpenStreetMaps servrar: sätt en egen `User-Agent` och pausa drygt en tiondels sekund
