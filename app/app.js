@@ -362,7 +362,7 @@ function drawCities() {
         <h3>${esc(c.name)}</h3>
         <div class="pill">${esc(c.dl)}</div>
         <p>${esc(c.txt)}</p>
-        <div class="lk"><span class="go">Öppna kortet</span>
+        <div class="lk"><span class="go"></span>
         ${antal ? `<span class="ext">${antal} egna platser</span>` : ''}
         ${S.cnotes[c.n] ? '<span class="ext">✎ anteckning</span>' : ''}</div>
       </div></div>`;
