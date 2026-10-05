@@ -10,15 +10,19 @@ const TAG = {
   fri:       { l: 'Fri tid',    c: '#6b6b64', b: '#f1f0ea' },
   hotell:    { l: 'Hotell',     c: '#123c3a', b: '#e8e3d9' },
   egen:      { l: 'Egen',       c: '#5a5a52', b: '#f2f1ed' },
+  oplanerad: { l: 'Oplanerad',  c: '#4a5b6b', b: '#e8edf2' },
   ovrigt:    { l: 'Övrigt',     c: '#5a5a52', b: '#eeedea' }
 };
 const DAYS = window.DAYS;
+const CITIES = window.CITIES;
 const KEY = 'japan2026';
 const TZ = 'Asia/Tokyo';
 
-const S = Object.assign({ done: {}, notes: {}, places: [], times: {}, tags: {}, dismissed: {}, contacts: {} },
+const S = Object.assign({ done: {}, notes: {}, places: [], times: {}, tags: {}, dismissed: {}, contacts: {},
+                          days: {}, citys: {}, cnotes: {}, pack: null },
   JSON.parse(localStorage.getItem(KEY) || '{}'));
 S.contacts = S.contacts || {};
+S.days = S.days || {}; S.citys = S.citys || {}; S.cnotes = S.cnotes || {};
 const save = () => localStorage.setItem(KEY, JSON.stringify(S));
 
 let sel = 1, filt = 'all', cat = 'alla', cur = null, mediaMode = 'bild', editTags = [];
@@ -38,16 +42,24 @@ const jp = (d, o) => new Intl.DateTimeFormat('sv-SE', Object.assign({ timeZone: 
 const IDX = {};
 function buildIndex() {
   for (const k in IDX) delete IDX[k];
-  DAYS.forEach(d => d.acts.forEach((a, i) => IDX['d' + d.n + '-' + i] = Object.assign({}, a, { dayN: d.n })));
+  DAYS.forEach(d => d.acts.forEach((a, i) =>
+    IDX['d' + d.n + '-' + i] = Object.assign({}, a, { dayN: d.n, date: d.date })));
   S.places.forEach(p => IDX[p.id] = {
     t: p.t, n: p.name, m: p.addr || '', d: p.note || p.addr || '',
-    g: ['egen', p.cat], dayN: p.day, i: '📍', own: 1,
+    g: ['egen', p.cat], dayN: p.day, cityN: p.city, i: '📍', own: 1,
     lat: p.lat, lng: p.lng, photo: p.photo, credit: p.credit,
     L: p.url ? [['Öppna länken', p.url]] : []
   });
   Object.keys(IDX).forEach(k => {
-    if (S.times[k]) IDX[k].t = S.times[k];
-    if (S.tags[k]) IDX[k].g = S.tags[k].slice();
+    const a = IDX[k];
+    if (S.times[k]) a.t = S.times[k];
+    if (S.tags[k]) a.g = S.tags[k].slice();
+    // Flyttad till annan dag, eller lossad från schemat och knuten till en ort
+    if (S.days[k] !== undefined) a.dayN = S.days[k];
+    if (S.citys[k] !== undefined) a.cityN = S.citys[k];
+    if (a.dayN) { a.cityN = a.cityN || 0; }
+    else if (a.cityN && !a.g.includes('oplanerad')) a.g = a.g.concat('oplanerad');
+    a.date = a.dayN ? (DAYS.find(x => x.n === a.dayN) || {}).date : null;
   });
 }
 const tagHtml = g => (g || []).map(k => {
@@ -62,16 +74,16 @@ document.querySelectorAll('.tab').forEach(b => b.onclick = () => {
   document.getElementById('s-' + b.dataset.s).classList.add('on');
   document.getElementById('scroll').scrollTop = 0;
 });
-document.querySelectorAll('#catseg button').forEach(b => b.onclick = () => {
-  document.querySelectorAll('#catseg button').forEach(x => x.classList.toggle('on', x === b));
-  cat = b.dataset.c; drawPlaces();
-});
 document.querySelectorAll('#minaseg button').forEach(b => b.onclick = () => {
   document.querySelectorAll('#minaseg button').forEach(x => x.classList.toggle('on', x === b));
   const v = b.dataset.v;
   document.getElementById('mina-platser').style.display = v === 'platser' ? '' : 'none';
+  document.getElementById('mina-packning').style.display = v === 'packning' ? '' : 'none';
   document.getElementById('mina-info').style.display = v === 'info' ? '' : 'none';
-  document.getElementById('minaSub').textContent = v === 'platser' ? 'Egna tips utanför programmet' : 'Kontakter, flyg och hotell';
+  document.getElementById('minaSub').textContent =
+    v === 'platser' ? 'Egna tips utanför programmet'
+    : v === 'packning' ? 'Packning inför resan' : 'Kontakter, flyg och hotell';
+  if (v === 'packning') drawPack();
   document.getElementById('scroll').scrollTop = 0;
 });
 
@@ -97,7 +109,7 @@ function pick(n) { sel = n; valdSjalv = true; drawChips(); drawActs(); }
 function drawFilters() {
   let h = [['all', 'Alla'], ['todo', 'Kvar']].map(([k, l]) =>
     `<button class="fch ${filt === k ? 'on' : ''}" onclick="setFilt('${k}')">${l}</button>`).join('');
-  h += Object.keys(TAG).map(k => {
+  h += Object.keys(TAG).filter(k => k !== 'oplanerad').map(k => {
     const t = TAG[k];
     const st = filt === k ? `background:${t.c};border-color:${t.c};color:#fff`
                           : `background:${t.b};border-color:${t.b};color:${t.c}`;
@@ -111,9 +123,9 @@ function drawActs() {
   const d = DAYS.find(x => x.n === sel);
   document.getElementById('dayhead').innerHTML =
     `<h2>${esc(d.title)}</h2><p>Dag ${d.n} · ${d.wd} ${d.dl} · ${esc(d.city)}</p>`;
-  let keys = d.acts.map((a, i) => 'd' + d.n + '-' + i)
-    .concat(S.places.filter(p => p.day === d.n).map(p => p.id));
-  let list = keys.map(k => Object.assign({ k }, IDX[k])).sort((a, b) => mins(a.t) - mins(b.t));
+  drawWeatherDay(d);
+  let list = Object.keys(IDX).filter(k => IDX[k].dayN === sel)
+    .map(k => Object.assign({ k }, IDX[k])).sort((a, b) => mins(a.t) - mins(b.t));
   if (filt === 'todo') list = list.filter(a => !S.done[a.k]);
   else if (filt !== 'all') list = list.filter(a => (a.g || []).includes(filt));
   document.getElementById('acts').innerHTML = list.length ? list.map(a => {
@@ -130,6 +142,154 @@ function drawActs() {
             : (nt ? '<div class="ameta"><span class="hasnote">✎ anteckning</span></div>' : '')}
       <div class="tags">${tagHtml(a.g)}</div></div></div>`;
   }).join('') : '<div class="empty"><div class="e">✓</div><p>Inget matchar filtret.</p></div>';
+}
+
+/* ---------- Väder ----------
+   Prognosen kräver nät och sparas med tidsstämpel. Normalvärdena ligger i
+   data.js och fungerar offline, så det finns alltid något att visa. */
+const WXKEY = 'japan2026_wx';
+let WX = JSON.parse(localStorage.getItem(WXKEY) || '{"at":0,"d":{},"h":{}}');
+const wxSave = () => localStorage.setItem(WXKEY, JSON.stringify(WX));
+const WXKOD = {
+  0: ['☀️', 'Klart'], 1: ['🌤', 'Mest klart'], 2: ['⛅', 'Växlande moln'], 3: ['☁️', 'Mulet'],
+  45: ['🌫', 'Dimma'], 48: ['🌫', 'Dimma'],
+  51: ['🌦', 'Duggregn'], 53: ['🌦', 'Duggregn'], 55: ['🌦', 'Duggregn'],
+  61: ['🌧', 'Regn'], 63: ['🌧', 'Regn'], 65: ['🌧', 'Kraftigt regn'],
+  71: ['🌨', 'Snö'], 73: ['🌨', 'Snö'], 75: ['🌨', 'Snö'],
+  80: ['🌦', 'Skurar'], 81: ['🌦', 'Skurar'], 82: ['🌦', 'Kraftiga skurar'],
+  95: ['⛈', 'Åska'], 96: ['⛈', 'Åska'], 99: ['⛈', 'Åska']
+};
+const wxIkon = k => (WXKOD[k] || ['🌤', 'Växlande'])[0];
+const wxText = k => (WXKOD[k] || ['🌤', 'Växlande'])[1];
+const FARSK = 24 * 3600 * 1000;      // prognos äldre än ett dygn används inte
+
+// Vilka orter en dag tillbringas i. Två betyder att dagen är delad.
+function cityOfDay(n) {
+  return CITIES.filter(c => c.d1 <= n && n <= c.d2)
+    .sort((a, b) => (a.d2 - a.d1) - (b.d2 - b.d1) || a.n - b.n);
+}
+// Klockslaget då gruppen byter ort: transporten mellan sista punkten på A och första på B.
+function bytTid(d, a, b) {
+  const avst = (act, c) => Math.hypot(act.lat - c.lat, (act.lng - c.lng) * .8);
+  const vems = act => act.lat == null ? null : (avst(act, a) <= avst(act, b) ? 'a' : 'b');
+  const acts = d.acts;
+  let sistA = -1, forstB = -1;
+  acts.forEach((x, i) => {
+    const v = vems(x);
+    if (v === 'a') sistA = i;
+    if (v === 'b' && forstB < 0) forstB = i;
+  });
+  const slut = forstB < 0 ? acts.length : forstB;
+  for (let i = sistA + 1; i < slut; i++)
+    if ((acts[i].g || []).includes('transport')) return acts[i].t;
+  if (forstB >= 0) return acts[forstB].t;
+  for (let i = sistA + 1; i < acts.length; i++)
+    if ((acts[i].g || []).includes('transport')) return acts[i].t;
+  return '15:00';
+}
+
+async function wxHamta() {
+  if (!navigator.onLine) return false;
+  try {
+    for (const c of CITIES) {
+      const u = `https://api.open-meteo.com/v1/forecast?latitude=${c.lat}&longitude=${c.lng}` +
+        '&daily=temperature_2m_max,temperature_2m_min,weather_code,precipitation_probability_max' +
+        '&timezone=Asia%2FTokyo&forecast_days=16';
+      const r = await (await fetch(u)).json();
+      WX.d[c.n] = {};
+      r.daily.time.forEach((dag, i) => {
+        const mx = r.daily.temperature_2m_max[i], mn = r.daily.temperature_2m_min[i];
+        // Prognosens sista dygn kan sakna v\u00e4rden \u2014 d\u00e5 \u00e4r normalv\u00e4rdet b\u00e4ttre \u00e4n noll
+        if (mx == null || mn == null) return;
+        WX.d[c.n][dag] = {
+          max: Math.round(mx), min: Math.round(mn),
+          kod: r.daily.weather_code[i],
+          regn: r.daily.precipitation_probability_max[i]
+        };
+      });
+    }
+    WX.at = Date.now(); wxSave();
+    return true;
+  } catch (e) { return false; }
+}
+
+// Delar upp ett dygn i perioder. Behövs bara för delade dagar.
+async function wxTimmar(c, datum, fran, till) {
+  const nyckel = `${c.n}|${datum}|${fran}|${till}`;
+  if (WX.h[nyckel] && Date.now() - WX.at < FARSK) return WX.h[nyckel];
+  if (!navigator.onLine) return null;
+  try {
+    const u = `https://api.open-meteo.com/v1/forecast?latitude=${c.lat}&longitude=${c.lng}` +
+      '&hourly=temperature_2m,weather_code,precipitation_probability' +
+      `&timezone=Asia%2FTokyo&start_date=${datum}&end_date=${datum}`;
+    const h = (await (await fetch(u)).json()).hourly;
+    const idx = h.time.map((t, i) => [+t.slice(11, 13), i])
+      .filter(([tim]) => tim >= fran && tim < till).map(([, i]) => i);
+    if (!idx.length) return null;
+    const temps = idx.map(i => h.temperature_2m[i]);
+    const koder = idx.map(i => h.weather_code[i]);
+    const v = {
+      max: Math.round(Math.max(...temps)), min: Math.round(Math.min(...temps)),
+      kod: koder.slice().sort((a, b) =>
+        koder.filter(x => x === b).length - koder.filter(x => x === a).length)[0],
+      regn: Math.max(...idx.map(i => h.precipitation_probability[i]))
+    };
+    WX.h[nyckel] = v; wxSave();
+    return v;
+  } catch (e) { return null; }
+}
+
+const wxPrognos = (c, datum) =>
+  (Date.now() - WX.at < FARSK && (WX.d[c.n] || {})[datum]) || null;
+const wxNormal = (c, datum) => (c.norm || {})[datum.slice(5)] || null;
+
+function wxRad(c, datum, etikett) {
+  const p = wxPrognos(c, datum);
+  if (p) return `<div class="wx"><div class="ic">${wxIkon(p.kod)}</div>
+    <div class="b"><div class="t">${wxText(p.kod)}${p.regn >= 30 ? ' · ' + p.regn + '% regn' : ''}</div>
+    <div class="m">${esc(etikett || c.name)} · prognos</div></div>
+    <div class="tm"><div class="dg">${p.max}°</div><div class="nt">natt ${p.min}°</div></div></div>`;
+  const n = wxNormal(c, datum);
+  if (!n) return '';
+  return `<div class="wx norm"><div class="ic">${n[2] >= 50 ? '🌦' : '🌤'}</div>
+    <div class="b"><div class="t">Normalt för årstiden</div>
+    <div class="m">${esc(etikett || c.name)} · sjuårsmedel${n[2] >= 50 ? ' · regn vanligt' : ''}</div></div>
+    <div class="tm"><div class="dg">${Math.round(n[0])}°</div>
+    <div class="nt">natt ${Math.round(n[1])}°</div></div></div>`;
+}
+
+async function drawWeatherDay(d) {
+  const box = document.getElementById('wxday');
+  const orter = cityOfDay(d.n);
+  if (!orter.length) { box.innerHTML = ''; return; }
+  if (orter.length === 1) { box.innerHTML = wxRad(orter[0], d.date); return; }
+
+  const [a, b] = orter;
+  const byt = bytTid(d, a, b);
+  const tim = +byt.slice(0, 2);
+  const pa = await wxTimmar(a, d.date, 7, tim);
+  const pb = await wxTimmar(b, d.date, tim, 24);
+  if (pa && pb) {
+    const rad = (c, p, fran, till, txt) => `<div class="wxleg">
+      <div class="pd">${pad(fran)}–${pad(till)}<br>${esc(c.name.split(' och ')[0])}</div>
+      <div class="ic">${wxIkon(p.kod)}</div>
+      <div class="b"><div class="t">${wxText(p.kod)}</div><div class="m">${txt}</div></div>
+      <div class="tm">${p.max}°</div></div>`;
+    box.innerHTML = `<div class="wxsplit">
+      ${rad(a, pa, 7, tim, 'Fram till avfärd' + (pa.regn >= 30 ? ' · ' + pa.regn + '% regn' : ''))}
+      ${rad(b, pb, tim, 24, 'Kväll och natt · ner mot ' + pb.min + '°')}</div>`;
+    return;
+  }
+  // Utan timprognos blir det en normalrad per ort
+  const norm = (c) => {
+    const n = wxNormal(c, d.date);
+    return n ? `<div class="wxleg"><div class="pd">${esc(c.name.split(' och ')[0])}</div>
+      <div class="ic">${n[2] >= 50 ? '🌦' : '🌤'}</div>
+      <div class="b"><div class="t">Normalt ${Math.round(n[0])}° / natt ${Math.round(n[1])}°</div>
+      <div class="m">sjuårsmedel</div></div></div>` : '';
+  };
+  const h = norm(a) + norm(b);
+  box.innerHTML = h ? `<div class="wxsplit norm">${h}</div>` : '';
 }
 
 /* ---------- Resrutten ---------- */
@@ -192,18 +352,107 @@ function drawRoute() {
 function drawCities() {
   document.getElementById('ruttSub').textContent =
     `${CITIES.length} städer · ${CITIES[0].name} till ${CITIES[CITIES.length - 1].name}`;
-  document.getElementById('citylist').innerHTML = CITIES.map(c => `
-    <div class="city" id="city-${c.n}">
+  document.getElementById('citylist').innerHTML = CITIES.map(c => {
+    const antal = S.places.filter(p => p.city === c.n).length;
+    return `
+    <div class="city" id="city-${c.n}" onclick="openCity(${c.n})" style="cursor:pointer">
       <div class="num">${c.n}</div>
       <img src="img/${c.img}.jpg" alt="">
       <div class="cb">
         <h3>${esc(c.name)}</h3>
         <div class="pill">${esc(c.dl)}</div>
         <p>${esc(c.txt)}</p>
-        <div class="lk">
-          <button class="go" onclick="goDay(${c.d1})">Dagarna i appen</button>
-          <a class="ext" href="${c.url}" target="_blank" rel="noopener">${esc(c.lk)} ↗</a>
-        </div></div></div>`).join('');
+        <div class="lk"><span class="go">Öppna kortet</span>
+        ${antal ? `<span class="ext">${antal} egna platser</span>` : ''}
+        ${S.cnotes[c.n] ? '<span class="ext">✎ anteckning</span>' : ''}</div>
+      </div></div>`;
+  }).join('');
+}
+
+/* ---------- Stadskort ---------- */
+let curCity = null, cyFilt = 'alla', cyMedia = 'bild';
+
+function openCity(n) {
+  curCity = n; cyMedia = 'bild';
+  const c = CITIES.find(x => x.n === n);
+  const natter = c.d2 - c.d1 + 1;
+  document.getElementById('cyT').textContent = c.name;
+  document.getElementById('cyM').textContent = `${c.dl} · ${natter} ${natter === 1 ? 'dag' : 'dagar'}`;
+  document.getElementById('cyD').textContent = c.txt;
+  document.getElementById('cyN').value = S.cnotes[n] || '';
+  document.getElementById('cyL').innerHTML =
+    `<a href="${c.url}" target="_blank" rel="noopener">↗ ${esc(c.lk)}</a>`;
+  drawCityMedia();
+  drawCityWx(c);
+  drawCityPlaces();
+  document.getElementById('citysheet').classList.add('on');
+  document.getElementById('scrim').classList.add('on');
+}
+function setCityMedia(m) { cyMedia = m; drawCityMedia(); }
+// Samma konstanter som i build_assets.py, annars saknas rutorna offline.
+const CYZ = 12, CYW = 560, CYH = 210;
+function drawCityMedia() {
+  const c = CITIES.find(x => x.n === curCity), el = document.getElementById('cyMedia');
+  const inner = cyMedia === 'karta'
+    ? tileMap(c.lat, c.lng, CYZ, CYW, CYH, false)
+    : `<img src="img/${c.img}.jpg" alt="">`;
+  el.innerHTML = inner + `<div class="mtoggle">
+    <button class="${cyMedia === 'bild' ? 'on' : ''}" onclick="setCityMedia('bild')">Bild</button>
+    <button class="${cyMedia === 'karta' ? 'on' : ''}" onclick="setCityMedia('karta')">Karta</button></div>`;
+}
+function drawCityWx(c) {
+  const dagar = DAYS.filter(d => c.d1 <= d.n && d.n <= c.d2);
+  document.getElementById('cyWx').innerHTML = dagar.map(d => {
+    const p = wxPrognos(c, d.date), n = wxNormal(c, d.date);
+    const v = p || (n ? { max: Math.round(n[0]), min: Math.round(n[1]), kod: n[2] >= 50 ? 61 : 1 } : null);
+    if (!v) return '';
+    return `<div class="wxd ${p ? 'prognos' : ''}"><div class="dd">${d.wd.slice(0, 3)} ${d.dl.split(' ')[0]}</div>
+      <div class="ii">${wxIkon(v.kod)}</div><div class="tt">${v.max}°</div><div class="nn">${v.min}°</div></div>`;
+  }).join('') || '<p class="hint">Inga väderuppgifter för de här dagarna.</p>';
+}
+function setCyFilt(f) { cyFilt = f; drawCityPlaces(); }
+function drawCityPlaces() {
+  const egna = S.places.filter(p => {
+    const a = IDX[p.id] || {};
+    return p.city === curCity || (a.dayN && cityOfDay(a.dayN).some(c => c.n === curCity));
+  });
+  const planerad = p => !!(IDX[p.id] || {}).dayN;
+  const antal = { alla: egna.length, planerat: egna.filter(planerad).length };
+  antal.oplanerat = egna.length - antal.planerat;
+  document.getElementById('cyFilt').innerHTML =
+    [['alla', 'Alla'], ['planerat', 'Planerat'], ['oplanerat', 'Oplanerat']].map(([k, l]) =>
+      `<button class="fch ${cyFilt === k ? 'on' : ''}" onclick="setCyFilt('${k}')">${l} ${antal[k]}</button>`).join('');
+  const lista = egna.filter(p => cyFilt === 'alla' ||
+    (cyFilt === 'planerat' ? planerad(p) : !planerad(p)));
+  const ic = { mat: '🍜', aktivitet: '🖼️', shopping: '🛍️', ovrigt: '📍' };
+  document.getElementById('cyPlaces').innerHTML = lista.length ? lista.map(p => {
+    const a = IDX[p.id] || {}, d = DAYS.find(x => x.n === a.dayN);
+    return `<div class="mini" onclick="openAct('${p.id}')" style="cursor:pointer">
+      ${p.photo && PHOTOS[p.photo] ? `<img class="pthumb" src="${PHOTOS[p.photo]}" alt="">`
+        : `<div class="ico">${ic[p.cat] || '📍'}</div>`}
+      <div class="mb"><div class="mn">${esc(p.name)}</div>
+      <div class="mm">${d ? 'Dag ' + d.n + ' · ' + a.t : 'Ingen tid satt'}</div></div>
+      <span class="tg" style="color:${d ? TAG[p.cat].c : TAG.oplanerad.c};background:${d ? TAG[p.cat].b : TAG.oplanerad.b}">${d ? TAG[p.cat].l : 'Oplanerad'}</span></div>`;
+  }).join('') : `<p class="hint">Inget här än${cyFilt !== 'alla' ? ' under det filtret' : ''}.</p>`;
+}
+function saveCityNote() {
+  S.cnotes[curCity] = document.getElementById('cyN').value.trim();
+  if (!S.cnotes[curCity]) delete S.cnotes[curCity];
+  save(); drawCities(); toast('Anteckningen sparad.');
+}
+function addInCity() {
+  const n = curCity;
+  closeSheets();
+  openAdd(1);
+  setWhen('ad', 'plats');
+  document.getElementById('adCity').value = n;
+}
+function cityDays() {
+  const c = CITIES.find(x => x.n === curCity);
+  closeSheets();
+  document.querySelectorAll('.tab').forEach(x => x.classList.toggle('on', x.dataset.s === 'plan'));
+  closeRoute();
+  pick(c.d1);
 }
 function openRoute() {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('on'));
@@ -255,12 +504,35 @@ document.getElementById('scroll').addEventListener('scroll', () => {
 }, { passive: true });
 
 /* ---------- Detaljpanel ---------- */
+/* ---------- När hör punkten hemma? ---------- */
+// Byter mellan schemalagd (datum + tid) och bara knuten till en ort.
+function setWhen(pre, lage) {
+  document.querySelectorAll('#' + pre + 'WhenSeg button')
+    .forEach(b => b.classList.toggle('on', b.dataset.w === lage));
+  document.getElementById(pre + 'WhenTid').style.display = lage === 'tid' ? '' : 'none';
+  document.getElementById(pre + 'WhenPlats').style.display = lage === 'plats' ? '' : 'none';
+  document.getElementById(pre + 'WhenHint').textContent = lage === 'tid'
+    ? 'Punkten ligger i Resplan på det datumet. Byter du datum flyttas den dit.'
+    : 'Ingen tid sätts. Punkten får taggen Oplanerad och syns på ortens kort.';
+}
+const whenLage = pre =>
+  document.querySelector('#' + pre + 'WhenSeg button.on').dataset.w;
+function fyllStadsval(id, vald) {
+  document.getElementById(id).innerHTML = CITIES.map(c =>
+    `<option value="${c.n}" ${c.n === vald ? 'selected' : ''}>${esc(c.name)}</option>`).join('');
+}
+['sh', 'ad'].forEach(pre => document.querySelectorAll('#' + pre + 'WhenSeg button')
+  .forEach(b => b.onclick = () => setWhen(pre, b.dataset.w)));
+
 function openAct(k) {
   cur = k; mediaMode = 'bild';
   const a = IDX[k], d = DAYS.find(x => x.n === a.dayN);
   document.getElementById('shT').textContent = a.n;
-  document.getElementById('shM').textContent = a.dayN ? `Dag ${a.dayN}${d ? ' · ' + d.wd + ' ' + d.dl : ''}` : 'Ingen dag';
+  document.getElementById('shM').textContent = a.dayN ? `Dag ${a.dayN}${d ? ' · ' + d.wd + ' ' + d.dl : ''}` : 'Oplanerad';
   document.getElementById('shTime').value = a.t;
+  document.getElementById('shDate').value = a.date || (DAYS.find(x => x.n === sel) || DAYS[0]).date;
+  fyllStadsval('shCity', a.cityN || (cityOfDay(a.dayN || sel)[0] || CITIES[0]).n);
+  setWhen('sh', a.dayN ? 'tid' : 'plats');
   editTags = (a.g || []).slice();
   renderTagEdit();
   document.getElementById('shD').textContent = a.d || a.m || 'Ingen beskrivning — lägg till en egen anteckning nedan.';
@@ -339,14 +611,24 @@ function toggleDone() {
 }
 function saveDetail() {
   S.notes[cur] = document.getElementById('shN').value;
-  const tv = document.getElementById('shTime').value;
-  if (tv) {
-    S.times[cur] = tv;
-    const p = S.places.find(x => x.id === cur);
-    if (p) p.t = tv;
+  const p = S.places.find(x => x.id === cur);
+  if (whenLage('sh') === 'tid') {
+    const tv = document.getElementById('shTime').value;
+    if (tv) { S.times[cur] = tv; if (p) p.t = tv; }
+    const dv = document.getElementById('shDate').value;
+    const nyDag = DAYS.find(x => x.date === dv);
+    if (nyDag) { S.days[cur] = nyDag.n; if (p) p.day = nyDag.n; }
+    delete S.citys[cur];
+    if (p) delete p.city;
+  } else {
+    S.days[cur] = 0;
+    S.citys[cur] = +document.getElementById('shCity').value;
+    if (p) { p.day = 0; p.city = S.citys[cur]; }
   }
-  S.tags[cur] = editTags.slice();
-  save(); buildIndex(); closeSheets(); drawActs(); drawPlaces(); drawNow();
+  S.tags[cur] = editTags.filter(t => t !== 'oplanerad');
+  save(); buildIndex(); closeSheets();
+  drawActs(); drawPlaces(); drawNow(); drawCities();
+  if (document.getElementById('citysheet').dataset.open) drawCityPlaces();
 }
 function delPlace() {
   if (!confirm('Ta bort den här platsen?')) return;
@@ -359,7 +641,7 @@ function delPlace() {
 function closeSheets() {
   document.querySelectorAll('.sheet').forEach(s => { s.classList.remove('on'); s.style.transform = ''; });
   document.getElementById('scrim').classList.remove('on');
-  shBase = null;
+  shBase = null; curCity = null;
 }
 
 let toastT = null;
@@ -376,6 +658,9 @@ let shBase = null;
 const shSnapshot = () => JSON.stringify([
   document.getElementById('shN').value,
   document.getElementById('shTime').value,
+  document.getElementById('shDate').value,
+  whenLage('sh'),
+  document.getElementById('shCity').value,
   editTags.slice().sort()]);
 const shDirty = () => shBase !== null && shSnapshot() !== shBase;
 
@@ -641,8 +926,11 @@ async function useSuggestion(i, el) {
 
 function openAdd(fromPlaces) {
   document.getElementById('adT').textContent = fromPlaces ? 'Ny plats' : 'Ny punkt';
-  document.getElementById('adD').innerHTML = '<option value="0">Ingen dag — bara en idé</option>' +
-    DAYS.map(d => `<option value="${d.n}" ${d.n === sel && !fromPlaces ? 'selected' : ''}>Dag ${d.n} · ${d.dl} · ${esc(d.city)}</option>`).join('');
+  const d = DAYS.find(x => x.n === sel) || DAYS[0];
+  document.getElementById('adDate').value = d.date;
+  fyllStadsval('adCity', (cityOfDay(sel)[0] || CITIES[0]).n);
+  setWhen('ad', fromPlaces ? 'plats' : 'tid');
+  document.getElementById('adTi').value = '12:00';
   document.getElementById('adN').value = '';
   document.getElementById('adNo').value = '';
   document.getElementById('adQ').value = '';
@@ -655,11 +943,15 @@ function openAdd(fromPlaces) {
 async function savePlace() {
   const n = document.getElementById('adN').value.trim();
   if (!n) { document.getElementById('adN').focus(); return; }
+  const schemalagd = whenLage('ad') === 'tid';
+  const dag = schemalagd
+    ? (DAYS.find(x => x.date === document.getElementById('adDate').value) || {}).n || 0 : 0;
   const p = {
     id: 'p' + Date.now(), name: n,
     cat: document.getElementById('adC').value,
-    t: document.getElementById('adTi').value,
-    day: +document.getElementById('adD').value,
+    t: schemalagd ? document.getElementById('adTi').value : '12:00',
+    day: dag,
+    city: schemalagd ? 0 : +document.getElementById('adCity').value,
     note: document.getElementById('adNo').value.trim()
   };
   if (picked) {
@@ -674,26 +966,117 @@ async function savePlace() {
     catch (e) { delete p.photo; alert('Fotot kunde inte sparas: ' + e.message); }
   }
   S.places.push(p);
-  save(); buildIndex(); closeSheets(); drawActs(); drawPlaces(); backupInfo();
+  save(); buildIndex(); closeSheets();
+  drawActs(); drawPlaces(); drawCities(); backupInfo();
 }
+function setCat(c) { cat = c; drawPlaces(); }
 function drawPlaces() {
   const ic = { mat: '🍜', aktivitet: '🖼️', shopping: '🛍️', ovrigt: '📍' };
-  const l = S.places.filter(p => cat === 'alla' || p.cat === cat);
+  const oplanerad = p => !(IDX[p.id] || {}).dayN;
+  const antal = k => k === 'alla' ? S.places.length
+    : k === 'oplanerad' ? S.places.filter(oplanerad).length
+    : S.places.filter(p => p.cat === k).length;
+  document.getElementById('catseg2').innerHTML =
+    [['alla', 'Alla'], ['oplanerad', 'Oplanerad'], ['mat', 'Mat'],
+     ['aktivitet', 'Museum'], ['shopping', 'Shopping']].map(([k, l]) =>
+      `<button class="fch ${cat === k ? 'on' : ''}" onclick="setCat('${k}')">${l} ${antal(k)}</button>`).join('');
+  const l = S.places.filter(p => cat === 'alla' ? true
+    : cat === 'oplanerad' ? oplanerad(p) : p.cat === cat);
   document.getElementById('places').innerHTML = l.length ? l.map(p => {
-    const d = DAYS.find(x => x.n === p.day);
+    const a = IDX[p.id] || {}, d = DAYS.find(x => x.n === a.dayN);
+    const ort = !d && p.city ? (CITIES.find(c => c.n === p.city) || {}).name : null;
     return `<div class="card" onclick="openAct('${p.id}')" style="cursor:pointer">
       <div style="display:flex;gap:11px;align-items:center">
         ${p.photo && PHOTOS[p.photo] ? `<img class="pthumb" src="${PHOTOS[p.photo]}" alt="">`
           : `<div class="ico">${ic[p.cat] || '📍'}</div>`}
         <div style="flex:1;min-width:0">
           <div style="font-size:15px;font-weight:650">${esc(p.name)}</div>
-          <div style="font-size:11.5px;color:var(--ink-faint);margin-top:2px">${p.t} · ${d ? 'Dag ' + d.n + ' (' + d.dl + ')' : 'Ingen dag'}</div>
+          <div style="font-size:11.5px;color:var(--ink-faint);margin-top:2px">${
+            d ? a.t + ' · Dag ' + d.n + ' (' + d.dl + ')'
+              : (ort ? '📍 ' + esc(ort) + ' · ingen tid satt' : 'Ingen tid satt')}</div>
         </div></div>
       ${p.addr ? `<p style="font-size:11.5px;color:var(--ink-faint);margin:7px 0 0;line-height:1.4">📍 ${esc(p.addr)}</p>` : ''}
       ${p.note ? `<p style="font-size:12.5px;color:var(--ink-soft);margin:9px 0 0;line-height:1.45">${esc(p.note)}</p>` : ''}
-      <div class="tags" style="margin-top:8px">${tagHtml(['egen', p.cat])}</div></div>`;
+      <div class="tags" style="margin-top:8px">${tagHtml(a.g || ['egen', p.cat])}</div></div>`;
   }).join('') : '<div class="empty"><div class="e">🍜</div><p>Inga egna platser än.<br>Lägg till restauranger och museer<br>ni hittar på vägen.</p></div>';
 }
+
+/* ---------- Packning ---------- */
+function packForslag() {
+  const ut = [];
+  let lagst = 99, lagstOrt = '', regn = 0, dagar = 0;
+  DAYS.forEach(d => {
+    const c = cityOfDay(d.n).slice(-1)[0];
+    const n = c && wxNormal(c, d.date);
+    if (!n) return;
+    dagar++;
+    if (n[1] < lagst) { lagst = n[1]; lagstOrt = c.name.split(' och ')[0]; }
+    if (n[2] >= 50) regn++;
+  });
+  if (dagar) {
+    if (lagst < 10) ut.push({ t: 'Varma lager', vf: Math.round(lagst) + '° i ' + lagstOrt });
+    if (regn) ut.push({ t: 'Regnjacka', vf: regn + ' regndagar' });
+  }
+  // Dagar d\u00e4r bagaget skickas separat kr\u00e4ver en v\u00e4ska f\u00f6r en natt
+  DAYS.forEach(d => {
+    if (d.warn && /separat|liten v\u00e4ska|dygnsv/i.test(d.warn))
+      ut.push({ t: 'Dygnsv\u00e4ska f\u00f6r en natt', vf: 'Dag ' + d.n });
+  });
+  return ut;
+}
+function packInit() {
+  if (S.pack) return;
+  S.pack = packForslag().map((x, i) => ({ id: 'f' + i, t: x.t, vf: x.vf, done: 0 }));
+  save();
+}
+function drawPack() {
+  packInit();
+  let lagst = 99, hogst = -99, lagstOrt = '', hogstOrt = '', regn = 0, dagar = 0;
+  DAYS.forEach(d => {
+    const c = cityOfDay(d.n).slice(-1)[0];
+    const n = c && wxNormal(c, d.date);
+    if (!n) return;
+    dagar++;
+    if (n[0] > hogst) { hogst = n[0]; hogstOrt = c.name.split(' och ')[0]; }
+    if (n[1] < lagst) { lagst = n[1]; lagstOrt = c.name.split(' och ')[0]; }
+    if (n[2] >= 50) regn++;
+  });
+  document.getElementById('packsum').innerHTML = dagar ? `<div class="wsum">
+    <div class="lb">Vädret under resan</div>
+    <div class="big">${Math.round(lagst)}° till ${Math.round(hogst)}°</div>
+    <div class="sub">Varmast i ${esc(hogstOrt)}, kallast i ${esc(lagstOrt)}.
+      Regn mer troligt än inte ${regn} av ${dagar} dagar.</div>
+    <div class="delar">
+      <div class="del"><div class="k">Varmast</div><div class="v">${Math.round(hogst)}°</div><div class="n">${esc(hogstOrt)}</div></div>
+      <div class="del"><div class="k">Kallast natt</div><div class="v">${Math.round(lagst)}°</div><div class="n">${esc(lagstOrt)}</div></div>
+      <div class="del"><div class="k">Regndagar</div><div class="v">${regn}</div><div class="n">av ${dagar}</div></div>
+    </div></div>` : '';
+  const klara = S.pack.filter(x => x.done).length;
+  document.getElementById('packprog').innerHTML = S.pack.length
+    ? `<div class="bar"><i style="width:${Math.round(klara / S.pack.length * 100)}%"></i></div>
+       <div class="n">${klara} av ${S.pack.length}</div>` : '';
+  document.getElementById('packlist').innerHTML = S.pack.length ? S.pack.map(x =>
+    `<div class="pk ${x.done ? 'klar' : ''}" onclick="togPack('${x.id}')">
+      <div class="box">${x.done ? '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="4"><path d="M4 12.5l5.5 5.5L20 7"/></svg>' : ''}</div>
+      <div class="t">${esc(x.t)}</div>
+      ${x.vf ? `<span class="vf">${esc(x.vf)}</span>` : ''}
+      <button class="del" onclick="event.stopPropagation();delPack('${x.id}')">×</button></div>`).join('')
+    : '<p class="hint">Listan är tom. Lägg till det du vill komma ihåg.</p>';
+}
+function togPack(id) {
+  const x = S.pack.find(p => p.id === id);
+  if (x) { x.done = x.done ? 0 : 1; save(); drawPack(); }
+}
+function delPack(id) { S.pack = S.pack.filter(p => p.id !== id); save(); drawPack(); }
+function addPack() {
+  const el = document.getElementById('packNy'), t = el.value.trim();
+  if (!t) return;
+  S.pack.push({ id: 'p' + Date.now(), t, done: 0 });
+  el.value = ''; save(); drawPack();
+}
+document.getElementById('packNy').addEventListener('keydown', e => {
+  if (e.key === 'Enter') addPack();
+});
 
 /* ---------- Färdledare ----------
    Numren ligger medvetet inte i koden — de fylls i på enheten och sparas bara där. */
@@ -918,6 +1301,9 @@ drawChips(); drawFilters(); drawActs(); drawPlaces(); drawHotels(); drawLeaders(
 drawRoute(); drawCities();
 drawNow(); drawBanners(); backupInfo();
 loadPhotos().then(() => { drawPlaces(); drawActs(); drawNow(); backupInfo(); });
+// Vädret hämtas i bakgrunden. Tills det kommit visas normalvärdena.
+if (Date.now() - WX.at > 3 * 3600 * 1000)
+  wxHamta().then(ok => { if (ok) { drawActs(); if (curCity) drawCityWx(CITIES.find(c => c.n === curCity)); } });
 setInterval(drawNow, 60000);
 // När appen plockas fram igen kan dygnet ha vänt — hoppa till rätt dag om
 // användaren inte själv har bläddrat någon annanstans.

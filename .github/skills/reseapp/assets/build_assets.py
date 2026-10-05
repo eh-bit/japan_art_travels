@@ -1,12 +1,17 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Bygger appens offline-resurser: bilder, kartrutor, ikoner, data.js och assets.json."""
+"""Bygger appens offline-resurser: bilder, kartrutor, ikoner, data.js och assets.json.
+
+Körs efter extract.js, som skrivit itinerary.json och cities.json.
+Kartberäkningarna måste vara identiska med appens, annars begär appen rutor
+som inte finns nedladdade.
+"""
 import json, math, os, time, urllib.request, io
 from PIL import Image, ImageDraw
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 APP = os.path.join(HERE, '..', 'app')
-UA = 'JapanReseguide/1.0 (privat reseapp; kontakt via GitHub Copilot-anvandare)'
+UA = 'Reseguide/1.0 (privat reseapp)'
 
 days = json.load(open(os.path.join(HERE, 'itinerary.json'), encoding='utf-8'))
 cities = json.load(open(os.path.join(HERE, 'cities.json'), encoding='utf-8'))
@@ -17,7 +22,7 @@ def get(url, tries=3):
         try:
             req = urllib.request.Request(url, headers={'User-Agent': UA})
             return urllib.request.urlopen(req, timeout=40).read()
-        except Exception as e:
+        except Exception:
             if i == tries - 1:
                 raise
             time.sleep(1.5)
@@ -38,8 +43,9 @@ for slug, src in sorted(imgs.items()):
     out = os.path.join(APP, 'img', slug + '.jpg')
     if os.path.exists(out):
         continue
-    wide = 420 if slug.startswith('stad-') else 1000
-    raw = get('https://commons.wikimedia.org/wiki/Special:FilePath/' + src + f'?width={wide}')
+    liten = slug.startswith('stad-')          # stadsbilder visas bara som miniatyrer
+    bredd = 420 if liten else 1000
+    raw = get('https://commons.wikimedia.org/wiki/Special:FilePath/' + src + f'?width={bredd}')
     im = Image.open(io.BytesIO(raw))
     if im.mode in ('RGBA', 'P', 'LA'):
         bg = Image.new('RGB', im.size, (255, 255, 255))
@@ -48,7 +54,7 @@ for slug, src in sorted(imgs.items()):
         im = bg
     else:
         im = im.convert('RGB')
-    im.thumbnail((420, 420) if slug.startswith('stad-') else (900, 900), Image.LANCZOS)
+    im.thumbnail((420, 420) if liten else (900, 900), Image.LANCZOS)
     im.save(out, 'JPEG', quality=80, optimize=True)
     print('  ', slug, f'{os.path.getsize(out)//1024} kB')
     time.sleep(0.2)
@@ -59,7 +65,6 @@ Z, W, H = 15, 440, 260
 
 
 def world_px(lat, lng, z):
-    """Web Mercator, pixelkoordinater där varje ruta är 256 px."""
     n = 2 ** z * 256
     lr = math.radians(lat)
     return ((lng + 180) / 360 * n,
@@ -84,21 +89,8 @@ for d in days:
         if a.get('lat') is not None:
             need.update(tiles_for(a['lat'], a['lng']))
 
-# Stadskortens kartor. Samma konstanter som CYZ/CYW/CYH i app.js.
-CYZ, CYW, CYH = 12, 560, 210
-for c in cities:
-    n = 2 ** CYZ
-    x, y = world_px(c['lat'], c['lng'], CYZ)
-    left, top = x - CYW / 2, y - CYH / 2
-    for tx in range(math.floor(left / 256), math.floor((left + CYW) / 256) + 1):
-        for ty in range(math.floor(top / 256), math.floor((top + CYH) / 256) + 1):
-            if 0 <= ty < n:
-                need.add((CYZ, ((tx % n) + n) % n, ty))
-
-# Översiktskartan: ett fast utsnitt runt alla nio orter. Samma konstanter finns
-# i app.js så att appen aldrig begär en ruta som inte laddats hem.
+# Översiktskartan: ett fast utsnitt runt alla orter. Samma konstanter i appen.
 RZ, RPAD, RASPECT = 7, 64, 0.88
-
 pts = [world_px(c['lat'], c['lng'], RZ) for c in cities]
 xs, ys = [p[0] for p in pts], [p[1] for p in pts]
 vw = max(xs) - min(xs) + RPAD * 2
@@ -111,7 +103,7 @@ for tx in range(math.floor(ox / 256), math.floor((ox + vw) / 256) + 1):
 print(f'Ruttöversikt: zoom {RZ}, utsnitt {int(vw)}×{int(vh)} px')
 
 print(f'Kartrutor: {len(need)}')
-new = 0
+nya = 0
 for z, x, y in sorted(need):
     p = os.path.join(APP, 'tiles', str(z), str(x))
     os.makedirs(p, exist_ok=True)
@@ -119,26 +111,24 @@ for z, x, y in sorted(need):
     if os.path.exists(f):
         continue
     open(f, 'wb').write(get(f'https://tile.openstreetmap.org/{z}/{x}/{y}.png'))
-    new += 1
+    nya += 1
     time.sleep(0.12)      # var snäll mot OSM:s servrar
-print(f'  {new} nya rutor hämtade')
+print(f'  {nya} nya rutor hämtade')
 
 
 # ---------- 3. Ikoner ----------
 os.makedirs(os.path.join(APP, 'icons'), exist_ok=True)
 
 
-def icon(size, pad_bg=True):
+def icon(size):
+    """Enkel platsmarkör i appens färger. Byt motiv per resa."""
     im = Image.new('RGB', (size, size), '#123c3a')
     d = ImageDraw.Draw(im)
     s = size / 100.0
     acc = '#e07a5f'
-    # förenklad torii-port
-    d.rectangle([22 * s, 30 * s, 78 * s, 38 * s], fill=acc)          # övre balk
-    d.rectangle([28 * s, 44 * s, 72 * s, 50 * s], fill=acc)          # undre balk
-    d.rectangle([33 * s, 30 * s, 41 * s, 80 * s], fill=acc)          # vänster stolpe
-    d.rectangle([59 * s, 30 * s, 67 * s, 80 * s], fill=acc)          # höger stolpe
-    d.rectangle([18 * s, 24 * s, 82 * s, 30 * s], fill='#fbe4da')    # tak
+    d.ellipse([30 * s, 22 * s, 70 * s, 62 * s], fill=acc)
+    d.polygon([(38 * s, 55 * s), (62 * s, 55 * s), (50 * s, 82 * s)], fill=acc)
+    d.ellipse([43 * s, 35 * s, 57 * s, 49 * s], fill='#123c3a')
     return im
 
 
@@ -147,45 +137,7 @@ for sz in (180, 192, 512):
 print('Ikoner: 180, 192, 512')
 
 
-# ---------- 4. Väderns normalvärden ----------
-# Tioårsmedel per ort och datum ur Open-Meteos arkiv. Bakas in i data.js så att
-# appen har något att visa offline och bortom prognosens sexton dagar.
-NORMCACHE = os.path.join(HERE, 'normals_cache.json')
-cache = json.load(open(NORMCACHE)) if os.path.exists(NORMCACHE) else {}
-resdatum = sorted({d['date'][5:] for d in days})
-AR_FRAN, AR_TILL = 2019, 2025
-
-for c in cities:
-    nyckel = f"{c['lat']:.4f},{c['lng']:.4f}"
-    if nyckel not in cache:
-        url = ('https://archive-api.open-meteo.com/v1/archive'
-               f"?latitude={c['lat']}&longitude={c['lng']}"
-               f'&start_date={AR_FRAN}-10-01&end_date={AR_TILL}-10-31'
-               '&daily=temperature_2m_max,temperature_2m_min,precipitation_sum&timezone=Asia%2FTokyo')
-        t = json.loads(get(url))['daily']
-        per = {}
-        for i, dag in enumerate(t['time']):
-            md = dag[5:]
-            if md not in resdatum:
-                continue
-            if t['temperature_2m_max'][i] is None:
-                continue
-            per.setdefault(md, []).append(
-                (t['temperature_2m_max'][i], t['temperature_2m_min'][i], t['precipitation_sum'][i] or 0))
-        cache[nyckel] = {md: [round(sum(x[0] for x in v) / len(v), 1),
-                              round(sum(x[1] for x in v) / len(v), 1),
-                              round(sum(1 for x in v if x[2] >= 1) / len(v) * 100)]
-                         for md, v in per.items()}
-        time.sleep(0.4)
-    # Bara de datum orten faktiskt besöks
-    c['norm'] = {d['date'][5:]: cache[nyckel][d['date'][5:]]
-                 for d in days if c['d1'] <= d['n'] <= c['d2'] and d['date'][5:] in cache[nyckel]}
-
-json.dump(cache, open(NORMCACHE, 'w'), indent=0)
-print(f'Normalvärden: {len(cities)} orter, {AR_TILL - AR_FRAN + 1} års medel')
-
-
-# ---------- 5. data.js ----------
+# ---------- 4. data.js ----------
 for d in days:
     for a in d['acts']:
         a.pop('src', None)
@@ -197,7 +149,7 @@ open(os.path.join(APP, 'data.js'), 'w', encoding='utf-8').write(
 print('data.js skriven')
 
 
-# ---------- 6. assets.json (förhandscachningslista för service workern) ----------
+# ---------- 5. assets.json (förhandscachningslista för service workern) ----------
 assets = ['./', './index.html', './app.js', './data.js', './manifest.webmanifest',
           './icons/icon-180.png', './icons/icon-192.png', './icons/icon-512.png']
 for slug in sorted(imgs):
@@ -207,5 +159,5 @@ for z, x, y in sorted(need):
 json.dump(assets, open(os.path.join(APP, 'assets.json'), 'w'), indent=0)
 
 total = sum(os.path.getsize(os.path.join(APP, a[2:])) for a in assets
-            if a.startswith('./') and os.path.exists(os.path.join(APP, a[2:])))
-print(f'assets.json: {len(assets)} filer, {total/1024/1024:.1f} MB offline')
+            if os.path.exists(os.path.join(APP, a[2:])))
+print(f'assets.json: {len(assets)} filer, {total / 1e6:.1f} MB offline')

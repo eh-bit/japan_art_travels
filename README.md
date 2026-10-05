@@ -83,6 +83,26 @@ Bilderna ligger i enhetens `IndexedDB`, inte i `localStorage` — det är därf�
 
 ## Bra att veta
 
+**Väder.** Ovanför aktivitetslistan visas dagens väder. Är dagen delad mellan två orter —
+dag 6 och dag 10 — visas en rad per ort med den tidsperiod ni faktiskt är där. Brytpunkten
+läses ur programmets egna tider.
+
+Blå bakgrund betyder riktig prognos, grå betyder normalvärde. Prognosen räcker sexton dagar
+framåt och kräver nät; den sparas med tidsstämpel och används inte om den är äldre än ett dygn.
+Normalvärdena är sjuårsmedel som ligger i appens egna filer och fungerar offline.
+
+**Platskort.** Tryck på en stad i Resrutten. Kortet har bild eller karta, vädret för era dagar
+där, plats för egna anteckningar, och dina egna platser i staden med filtret Planerat/Oplanerat.
+
+**När hör punkten hemma?** Varje punkt har två lägen. *Dag och tid* ger datum och klockslag —
+byter du datum flyttas punkten till den dagen, vilket gäller även programmets egna punkter.
+*Bara en plats* knyter punkten till en ort utan tid; den får taggen Oplanerad och dyker upp på
+ortens kort.
+
+**Packning.** Egen flik under Mina. Överst en vädersammanfattning för hela resan, sedan en lista
+att bocka av. Några punkter föreslås automatiskt ur resans data — varma lager, regnjacka och
+dygnsväskan till dag 6 — och går att ta bort.
+
 **Tiderna är gissade.** Reseplanen säger bara "förmiddag/eftermiddag". Nyckeln står i `PLAN.md`. Alla tider går att ändra i appen — öppna en punkt, ändra, spara.
 
 **Säkerhetskopia.** Anteckningar, bockar och egna platser ligger i `localStorage` på just den enheten. Under **Mina → Viktig info → Säkerhetskopia** exporterar du en JSON-fil. Gör det före avresa, och använd den för att flytta mellan iPhone och iPad. Raderas appen från hemskärmen försvinner datan.

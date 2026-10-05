@@ -67,6 +67,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Robot
 .mini .mi{font-size:17px;flex:none;}
 .mini .mt{flex:1;min-width:0;font-size:12.5px;color:var(--ink-soft);}
 .mini .mt b{display:block;font-size:13.5px;color:var(--ink);font-weight:650;margin-bottom:1px;}
+.mini .mb{flex:1;min-width:0;}
+.mini .mn{font-size:13.5px;font-weight:650;line-height:1.2;}
+.mini .mm{font-size:11px;color:var(--ink-faint);margin-top:1px;}
 .prog{flex:1;height:6px;background:var(--border);border-radius:4px;overflow:hidden;}
 .prog i{display:block;height:100%;background:var(--sage);border-radius:4px;transition:width .3s;}
 .pnum{font-size:11.5px;font-weight:700;color:var(--ink-soft);white-space:nowrap;}
@@ -296,6 +299,83 @@ textarea{min-height:82px;resize:vertical;line-height:1.45;}
 .numform input{margin-bottom:8px;font-size:16px;}
 .numform .fl{margin-top:8px;}
 .banner{background:var(--primary-dark);color:#fff;border-radius:14px;padding:12px 14px;margin-bottom:12px;display:flex;gap:11px;align-items:flex-start;}
+
+/* Väder */
+.wx{display:flex;align-items:center;gap:11px;background:#e4eef5;border:1px solid #d3e2ee;
+  border-radius:15px;padding:10px 12px;margin-bottom:12px;}
+.wx .ic{font-size:25px;flex:none;line-height:1;}
+.wx .b{flex:1;min-width:0;}
+.wx .t{font-size:13.5px;font-weight:650;color:#23455c;line-height:1.2;}
+.wx .m{font-size:10.5px;color:#5c7e96;margin-top:2px;}
+.wx .tm{flex:none;text-align:right;}
+.wx .tm .dg{font-size:17px;font-weight:750;color:#23455c;letter-spacing:-.3px;}
+.wx .tm .nt{font-size:11px;color:#5c7e96;margin-top:1px;}
+.wx.norm{background:#f3f1ec;border-color:var(--border);}
+.wx.norm .t{color:var(--ink);}
+.wx.norm .m,.wx.norm .tm .nt{color:var(--ink-faint);}
+.wx.norm .tm .dg{color:var(--primary-dark);}
+.wxsplit{background:#e4eef5;border:1px solid #d3e2ee;border-radius:15px;margin-bottom:12px;overflow:hidden;}
+.wxsplit.norm{background:#f3f1ec;border-color:var(--border);}
+.wxleg{display:flex;align-items:center;gap:10px;padding:9px 12px;}
+.wxleg + .wxleg{border-top:1px solid #d3e2ee;}
+.wxsplit.norm .wxleg + .wxleg{border-top-color:var(--border);}
+.wxleg .pd{flex:none;width:66px;font-size:9.5px;font-weight:800;letter-spacing:.4px;
+  text-transform:uppercase;color:#5c7e96;line-height:1.35;}
+.wxsplit.norm .wxleg .pd{color:var(--ink-faint);}
+.wxleg .ic{font-size:21px;flex:none;}
+.wxleg .b{flex:1;min-width:0;}
+.wxleg .t{font-size:13.5px;font-weight:700;color:#23455c;line-height:1.2;}
+.wxleg .m{font-size:10.5px;color:#5c7e96;margin-top:1px;}
+.wxleg .tm{flex:none;font-size:15px;font-weight:750;color:#23455c;}
+.wxsplit.norm .wxleg .t,.wxsplit.norm .wxleg .tm{color:var(--primary-dark);}
+.wxsplit.norm .wxleg .m{color:var(--ink-faint);}
+.wxrow{display:flex;gap:7px;overflow-x:auto;margin:0 -20px;padding:0 20px 4px;scrollbar-width:none;}
+.wxrow::-webkit-scrollbar{display:none;}
+.wxd{flex:none;width:62px;background:#fff;border:1px solid var(--border);border-radius:13px;
+  padding:8px 4px;text-align:center;}
+.wxd.prognos{border-color:#d3e2ee;background:#e4eef5;}
+.wxd .dd{font-size:9.5px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;color:var(--ink-faint);}
+.wxd .ii{font-size:19px;margin:3px 0 2px;line-height:1;}
+.wxd .tt{font-size:13px;font-weight:750;color:var(--primary-dark);}
+.wxd .nn{font-size:10.5px;color:var(--ink-faint);}
+
+/* När-väljaren */
+.when{margin-top:16px;}
+.whenrow{display:flex;gap:9px;align-items:end;margin-top:11px;}
+.whenrow>*{flex:1;min-width:0;}
+.whenrow>.tcol{flex:0 0 112px;}
+
+/* Packning */
+.wsum{background:linear-gradient(145deg,#2c5f7a,#1d4257);border-radius:17px;padding:14px 16px;
+  color:#fff;margin-bottom:14px;}
+.wsum .lb{font-size:9.5px;font-weight:800;letter-spacing:1.3px;text-transform:uppercase;
+  color:#a9cde4;margin-bottom:6px;}
+.wsum .big{font-size:25px;font-weight:780;letter-spacing:-.5px;line-height:1.1;}
+.wsum .sub{font-size:12px;color:#c6dcea;margin-top:4px;line-height:1.45;}
+.wsum .delar{display:flex;gap:8px;margin-top:11px;}
+.wsum .del{flex:1;background:rgba(255,255,255,.12);border-radius:11px;padding:8px 9px;}
+.wsum .del .k{font-size:9px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:#a9cde4;}
+.wsum .del .v{font-size:14.5px;font-weight:700;margin-top:2px;}
+.wsum .del .n{font-size:10px;color:#c6dcea;margin-top:1px;}
+.pk{display:flex;align-items:center;gap:11px;background:#fff;border:1px solid var(--border);
+  border-radius:13px;padding:11px 13px;margin-bottom:7px;cursor:pointer;}
+.pk .box{width:21px;height:21px;border-radius:7px;border:1.8px solid #cfc7b4;flex:none;
+  display:flex;align-items:center;justify-content:center;}
+.pk.klar .box{background:var(--sage);border-color:var(--sage);}
+.pk .t{flex:1;font-size:14px;}
+.pk.klar .t{color:var(--ink-faint);text-decoration:line-through;}
+.pk .vf{font-size:10px;font-weight:700;color:#3d6b8e;background:#e4eef5;
+  padding:3px 7px;border-radius:6px;white-space:nowrap;}
+.pk .del{border:0;background:none;color:var(--ink-faint);font:inherit;font-size:17px;
+  cursor:pointer;padding:0 2px;flex:none;}
+.pkadd{display:flex;gap:8px;margin-top:10px;}
+.pkadd input{flex:1;min-width:0;}
+.pkadd button{flex:0 0 52px;border:0;border-radius:11px;background:var(--primary-dark);
+  color:#fff;font:inherit;font-size:20px;font-weight:600;cursor:pointer;margin:0;}
+.pkprog{display:flex;align-items:center;gap:9px;margin-bottom:12px;}
+.pkprog .bar{flex:1;height:7px;background:var(--border);border-radius:4px;overflow:hidden;}
+.pkprog .bar i{display:block;height:100%;background:var(--sage);}
+.pkprog .n{font-size:11.5px;color:var(--ink-faint);font-weight:650;}
 .banner p{margin:0;font-size:12.5px;line-height:1.45;flex:1;}
 .banner b{display:block;margin-bottom:3px;font-size:13px;}
 .banner button{border:0;background:rgba(255,255,255,.2);color:#fff;font:inherit;font-size:11px;font-weight:700;
@@ -325,6 +405,7 @@ textarea{min-height:82px;resize:vertical;line-height:1.45;}
       <div class="chips" id="chips"></div>
       <div class="fchips" id="filtchips"></div>
       <div class="dayhead" id="dayhead"></div>
+      <div id="wxday"></div>
       <div id="acts"></div>
       <button class="addbtn" onclick="openAdd()">+ Lägg till egen punkt</button>
     </section>
@@ -341,19 +422,25 @@ textarea{min-height:82px;resize:vertical;line-height:1.45;}
     <section class="screen" id="s-mina">
       <div class="hdr"><div><h1>Mina</h1><div class="day" id="minaSub">Egna tips utanför programmet</div></div></div>
       <div class="seg" id="minaseg">
-        <button class="on" data-v="platser">Mina platser</button>
+        <button class="on" data-v="platser">Platser</button>
+        <button data-v="packning">Packning</button>
         <button data-v="info">Viktig info</button>
       </div>
 
       <div id="mina-platser">
-        <div class="seg" id="catseg">
-          <button class="on" data-c="alla">Alla</button>
-          <button data-c="mat">Mat</button>
-          <button data-c="aktivitet">Museum</button>
-          <button data-c="shopping">Shopping</button>
-        </div>
+        <div class="fchips" id="catseg2"></div>
         <div id="places"></div>
         <button class="addbtn" onclick="openAdd(1)">+ Lägg till plats</button>
+      </div>
+
+      <div id="mina-packning" style="display:none">
+        <div id="packsum"></div>
+        <div class="pkprog" id="packprog"></div>
+        <div id="packlist"></div>
+        <div class="pkadd">
+          <input type="text" id="packNy" placeholder="Lägg till något att packa…" enterkeyhint="done">
+          <button onclick="addPack()">+</button>
+        </div>
       </div>
 
       <div id="mina-info" style="display:none">
@@ -434,7 +521,19 @@ textarea{min-height:82px;resize:vertical;line-height:1.45;}
     <div class="shpad">
       <h3 id="shT"></h3>
       <p class="sm" id="shM"></p>
-      <div class="editrow"><span class="el">Tid</span><input type="time" id="shTime"></div>
+      <label class="fl">När?</label>
+      <div class="seg" id="shWhenSeg">
+        <button class="on" data-w="tid">Dag och tid</button>
+        <button data-w="plats">Bara en plats</button>
+      </div>
+      <div class="whenrow" id="shWhenTid">
+        <div><label class="fl" style="margin:0 0 6px">Datum</label><input type="date" id="shDate"></div>
+        <div class="tcol"><label class="fl" style="margin:0 0 6px">Tid</label><input type="time" id="shTime"></div>
+      </div>
+      <div id="shWhenPlats" style="display:none">
+        <label class="fl" style="margin-top:11px">Plats</label><select id="shCity"></select>
+      </div>
+      <p class="hint" id="shWhenHint"></p>
       <div class="tags tgedit" id="shTags"></div>
       <p class="hint">Tryck på en tagg för att sätta eller ta bort den.</p>
       <p class="desc" id="shD"></p>
@@ -459,13 +558,22 @@ textarea{min-height:82px;resize:vertical;line-height:1.45;}
     <p class="hint" id="adHint">Hämtar namn, adress och koordinater så platsen får karta. Kräver nät.</p>
     <div id="adRes"></div>
     <label class="fl">Namn</label><input type="text" id="adN" placeholder="t.ex. Kissa Tengu, kaffebar">
-    <div class="row2">
-      <div><label class="fl">Typ</label><select id="adC">
-        <option value="mat">Restaurang</option><option value="aktivitet">Museum / sevärdhet</option>
-        <option value="shopping">Shopping</option><option value="ovrigt">Övrigt</option></select></div>
-      <div class="tcol"><label class="fl">Tid</label><input type="time" id="adTi" value="12:00"></div>
+    <label class="fl">Typ</label><select id="adC">
+      <option value="mat">Restaurang</option><option value="aktivitet">Museum / sevärdhet</option>
+      <option value="shopping">Shopping</option><option value="ovrigt">Övrigt</option></select>
+    <label class="fl">När?</label>
+    <div class="seg" id="adWhenSeg">
+      <button class="on" data-w="tid">Dag och tid</button>
+      <button data-w="plats">Bara en plats</button>
     </div>
-    <label class="fl">Dag</label><select id="adD"></select>
+    <div class="whenrow" id="adWhenTid">
+      <div><label class="fl" style="margin:0 0 6px">Datum</label><input type="date" id="adDate"></div>
+      <div class="tcol"><label class="fl" style="margin:0 0 6px">Tid</label><input type="time" id="adTi" value="12:00"></div>
+    </div>
+    <div id="adWhenPlats" style="display:none">
+      <label class="fl" style="margin-top:11px">Plats</label><select id="adCity"></select>
+    </div>
+    <p class="hint" id="adWhenHint"></p>
     <label class="fl">Bild</label>
     <div class="photorow">
       <button class="pbtn" onclick="document.getElementById('adPhoto').click()">📷 Eget foto</button>
@@ -479,6 +587,29 @@ textarea{min-height:82px;resize:vertical;line-height:1.45;}
     <button class="btn" onclick="savePlace()">Lägg till</button>
     <button class="btn sec" onclick="closeSheets()">Avbryt</button>
   </div></div>
+
+  <div class="sheet" id="citysheet">
+    <div class="grab"></div>
+    <div class="media" id="cyMedia"></div>
+    <div class="shpad">
+      <h3 id="cyT"></h3>
+      <p class="sm" id="cyM"></p>
+      <label class="fl">Väder under era dagar</label>
+      <div class="wxrow" id="cyWx"></div>
+      <label class="fl">Mina anteckningar</label>
+      <textarea id="cyN" placeholder="Kända rätter, saker att tänka på…"></textarea>
+      <button class="btn" onclick="saveCityNote()">Spara anteckning</button>
+      <label class="fl">Mina platser här</label>
+      <div class="fchips" id="cyFilt"></div>
+      <div id="cyPlaces"></div>
+      <button class="addbtn" onclick="addInCity()">+ Lägg till plats här</button>
+      <label class="fl">Om staden</label>
+      <p class="desc" id="cyD"></p>
+      <div class="links" id="cyL"></div>
+      <button class="btn" onclick="cityDays()">Visa dagarna</button>
+      <button class="btn sec" onclick="closeSheets()">Stäng</button>
+    </div>
+  </div>
 
   <div class="toast" id="toast"></div>
 </div>

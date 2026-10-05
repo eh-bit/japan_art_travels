@@ -1,6 +1,8 @@
-const VERSION = 'japan-2026-v13';
+/* Service worker för offline-först reseapp.
+   Höj VERSION vid VARJE ändring i appen, annars serveras den gamla koden. */
+const VERSION = 'resa-v1';
 // Egna platsers kartrutor ligger separat så de inte försvinner vid uppdatering
-const TILES = 'japan-egna-kartrutor';
+const TILES = 'egna-kartrutor';
 const OSM = 'https://tile.openstreetmap.org/';
 
 self.addEventListener('install', e => {
@@ -29,6 +31,7 @@ self.addEventListener('fetch', e => {
   if (req.method !== 'GET') return;
   const url = new URL(req.url);
 
+  // Kartrutor användaren själv orsakat: hämta en gång, behåll för alltid
   if (req.url.startsWith(OSM)) {
     e.respondWith((async () => {
       const c = await caches.open(TILES);
@@ -40,7 +43,7 @@ self.addEventListener('fetch', e => {
     })());
     return;
   }
-  if (url.origin !== location.origin) return;   // kartlänkar, sökning m.m. lämnas åt nätet
+  if (url.origin !== location.origin) return;   // sökning, kartlänkar m.m. lämnas åt nätet
 
   e.respondWith((async () => {
     const cached = await caches.match(req, { ignoreSearch: true });
