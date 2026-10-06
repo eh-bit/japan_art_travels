@@ -1,17 +1,17 @@
 /* Japan 2026 — reseapp. All data sparas lokalt på enheten. */
 
 const TAG = {
-  ingar:     { l: 'Ingår',      c: '#2f5e46', b: '#e3f1e9' },
-  transport: { l: 'Transport',  c: '#1f5068', b: '#e2eef5' },
-  aktivitet: { l: 'Aktivitet',  c: '#205e5b', b: '#dcebea' },
-  mat:       { l: 'Restaurang', c: '#9a3b12', b: '#fbe4da' },
-  shopping:  { l: 'Shopping',   c: '#6b3a86', b: '#f0e5f8' },
-  bokad:     { l: 'Bokad',      c: '#8a6100', b: '#fff3d6' },
-  fri:       { l: 'Fri tid',    c: '#6b6b64', b: '#f1f0ea' },
-  hotell:    { l: 'Hotell',     c: '#123c3a', b: '#e8e3d9' },
-  egen:      { l: 'Egen',       c: '#5a5a52', b: '#f2f1ed' },
-  oplanerad: { l: 'Oplanerad',  c: '#4a5b6b', b: '#e8edf2' },
-  ovrigt:    { l: 'Övrigt',     c: '#5a5a52', b: '#eeedea' }
+  ingar:     { l: 'Ingår',      c: '#526050', b: '#dfe7d8' },
+  transport: { l: 'Transport',  c: '#3e5a60', b: '#dae6e9' },
+  aktivitet: { l: 'Aktivitet',  c: '#526050', b: '#dfe7d8' },
+  mat:       { l: 'Restaurang', c: '#8c4e2e', b: '#f1dfd2' },
+  shopping:  { l: 'Shopping',   c: '#695184', b: '#e8deef' },
+  bokad:     { l: 'Bokad',      c: '#6e5b20', b: '#eee0ab' },
+  fri:       { l: 'Fri tid',    c: '#746b5c', b: '#ebe5d8' },
+  hotell:    { l: 'Hotell',     c: '#fff',    b: '#aaa08c' },
+  egen:      { l: 'Egen',       c: '#746b5c', b: '#ebe5d8' },
+  oplanerad: { l: 'Oplanerad',  c: '#4a5b6b', b: '#e3e8ea' },
+  ovrigt:    { l: 'Övrigt',     c: '#746b5c', b: '#ebe5d8' }
 };
 const DAYS = window.DAYS;
 const CITIES = window.CITIES;
@@ -122,11 +122,16 @@ function setFilt(f) { filt = f; drawFilters(); drawActs(); }
 
 function drawActs() {
   const d = DAYS.find(x => x.n === sel);
-  document.getElementById('dayhead').innerHTML =
-    `<h2>${esc(d.title)}</h2><p>Dag ${d.n} · ${d.wd} ${d.dl} · ${esc(d.city)}</p>`;
   drawWeatherDay(d);
   let list = Object.keys(IDX).filter(k => IDX[k].dayN === sel)
     .map(k => Object.assign({ k }, IDX[k])).sort((a, b) => mins(a.t) - mins(b.t));
+  let curK = null;
+  if (sel === todayDay()) { const m = mins(jp(now(), { hour: '2-digit', minute: '2-digit' })); list.forEach(a => { if (mins(a.t) <= m) curK = a.k; }); }
+  const nDone = list.filter(a => S.done[a.k]).length;
+  document.getElementById('dayhead').innerHTML =
+    `<h2>${esc(d.title)}</h2><p>Dag ${d.n} · ${d.wd} ${d.dl} · ${esc(d.city)}</p>` + (list.length ?
+    `<div class="phead"><span>Dagens program</span><span>${nDone} av ${list.length} klara</span></div>
+     <div class="track" style="grid-template-columns:repeat(${list.length},1fr)">${list.map(a => `<i class="${S.done[a.k] ? 'done' : a.k === curK ? 'now' : ''}"></i>`).join('')}</div>` : '');
   if (filt === 'todo') list = list.filter(a => !S.done[a.k]);
   else if (filt !== 'all') list = list.filter(a => (a.g || []).includes(filt));
   document.getElementById('acts').innerHTML = list.length ? list.map(a => {
@@ -135,7 +140,7 @@ function drawActs() {
     const thumb = own ? `<img class="athumb" src="${own}" alt="">`
       : a.img ? `<img class="athumb" src="img/${a.img}.jpg" alt="">`
       : `<div class="athumb ph">${a.i || '📍'}</div>`;
-    return `<div class="act ${dn ? 'done' : ''}" onclick="openAct('${a.k}')">
+    return `<div class="act ${dn ? 'done' : ''} ${a.k === curK ? 'current' : ''}" onclick="openAct('${a.k}')">
       <div class="tick"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5"><path d="M4 12.5l5.5 5.5L20 7"/></svg></div>
       ${thumb}
       <div class="abody"><div class="at">${a.t}</div><div class="an">${esc(a.n)}</div>
@@ -326,8 +331,9 @@ function routeMapHtml(w, h, opts) {
   const line = v.pts.map(p => at(p).map(Math.round).join(',')).join(' ');
   const dots = opts.dots === false ? '' : v.pts.map(p => {
     const [x, y] = at(p);
-    return `<div class="rdot" style="left:${Math.round(x)}px;top:${Math.round(y)}px"
-      onclick="focusCity(${p.n})">${p.n}</div>`;
+    const st = cityStatus(CITIES.find(c => c.n === p.n));
+    return `<div class="rdot ${st === 'visited' ? 'visited' : ''} ${p.n === routeSel ? 'on' : ''}" style="left:${Math.round(x)}px;top:${Math.round(y)}px"
+      onclick="selectCity(${p.n})">${p.n}</div>`;
   }).join('');
   if (opts.keep) routeV = v;
   return `<div class="rmap" style="height:${h}px;--dx:${v.dx}px;--dy:${v.dy}px;--s:${v.s}">
@@ -335,7 +341,7 @@ function routeMapHtml(w, h, opts) {
     <div class="ovl"><svg>
       <polyline points="${line}" fill="none" stroke="#fff" stroke-width="5"
         stroke-linecap="round" stroke-linejoin="round" opacity=".75"/>
-      <polyline points="${line}" fill="none" stroke="#e07a5f" stroke-width="2.6"
+      <polyline points="${line}" fill="none" stroke="#d9564f" stroke-width="2.6"
         stroke-dasharray="3,5.5" stroke-linecap="round"/></svg>${dots}</div>
     ${opts.att === false ? '' : '<div class="satt">© OpenStreetMap</div>'}</div>`;
 }
@@ -350,24 +356,30 @@ function drawRoute() {
         <div class="m">Karta och fakta om varje stad</div>
       </div><div class="arr">›</div></div>`;
 }
+function cityStatus(c) {
+  let n = todayDay();
+  if (n == null) n = jp(now(), { year: 'numeric', month: '2-digit', day: '2-digit' }) < DAYS[0].date ? 0 : 999;
+  return c.d2 < n ? 'visited' : (c.d1 <= n && n <= c.d2 ? 'now' : 'next');
+}
+let routeSel = null;
+const cityDagar = c => c.d1 === c.d2 ? 'Dag ' + c.d1 : 'Dagar ' + c.d1 + '–' + c.d2;
 function drawCities() {
   document.getElementById('ruttSub').textContent =
     `${CITIES.length} städer · ${CITIES[0].name} till ${CITIES[CITIES.length - 1].name}`;
+  if (routeSel == null) routeSel = (CITIES.find(c => cityStatus(c) === 'now') || CITIES[0]).n;
   document.getElementById('citylist').innerHTML = CITIES.map(c => {
-    const antal = S.places.filter(p => p.city === c.n).length;
-    return `
-    <div class="city" id="city-${c.n}" onclick="openCity(${c.n})" style="cursor:pointer">
-      <div class="num">${c.n}</div>
-      <img src="img/${c.img}.jpg" alt="">
-      <div class="cb">
-        <h3>${esc(c.name)}</h3>
-        <div class="pill">${esc(c.dl)}</div>
-        <p>${esc(c.txt)}</p>
-        <div class="lk"><span class="go"></span>
-        ${S.cnotes[c.n] ? '<span class="ext">✎ anteckning</span>' : ''}</div>
-      </div></div>`;
+    const st = cityStatus(c);
+    return `<div class="city-row ${st === 'visited' ? 'visited' : ''} ${c.n === routeSel ? 'active' : ''}" id="city-${c.n}" onclick="selectCity(${c.n})">
+      <b>${c.n}</b><h3>${esc(c.name)}</h3><span>${cityDagar(c)}${S.cnotes[c.n] ? ' · ✎' : ''}</span></div>`;
   }).join('');
+  const c = CITIES.find(x => x.n === routeSel), st = cityStatus(c);
+  document.getElementById('selcard').innerHTML =
+    `<div class="selected-card" onclick="openCity(${c.n})"><img src="img/${c.img}.jpg" alt="">
+      <div class="selected-copy"><small>${cityDagar(c)} · ${esc(c.dl)}</small><h2>${esc(c.name)}</h2><p>${esc(c.txt)}</p>
+      <span class="visited-label">${st === 'visited' ? 'Besökt' : st === 'now' ? 'Nuvarande destination' : 'Kommande'} · tryck för mer</span></div></div>`;
+  document.querySelectorAll('.rdot').forEach(e => e.classList.toggle('on', +e.textContent === routeSel));
 }
+function selectCity(n) { routeSel = n; drawCities(); }
 
 /* ---------- Stadskort ---------- */
 let curCity = null, cyFilt = 'alla', cyMedia = 'bild';
@@ -473,13 +485,11 @@ function cityDays() {
 }
 function openRoute() {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('on'));
-  const sr = document.getElementById('s-rutt');
-  sr.classList.add('on');
+  document.getElementById('s-rutt').classList.add('on');
   document.getElementById('scroll').scrollTop = 0;
   const el = document.getElementById('ruttmap');
-  el.classList.remove('fast');
   el.innerHTML = routeMapHtml(el.clientWidth, RTALL, { keep: true });
-  sr.style.setProperty('--strip', routeV.short + 'px');
+  drawCities();
 }
 function closeRoute() {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('on'));
@@ -495,31 +505,6 @@ function goDay(n) {
   s.scrollTop = 0;
   requestAnimationFrame(() => { s.scrollTop = 0; });
 }
-function setStrip(h) {
-  const el = document.querySelector('#ruttmap .rmap');
-  if (!el || !routeV) return;
-  el.style.height = h + 'px';
-  el.style.setProperty('--off', (-(RTALL - h) / 2) + 'px');
-}
-function focusCity(n) {
-  document.querySelectorAll('.city').forEach(e => e.classList.toggle('on', e.id === 'city-' + n));
-  document.querySelectorAll('.rdot').forEach(e => e.classList.toggle('on', +e.textContent === n));
-  const el = document.getElementById('city-' + n);
-  if (!el) return;
-  // Kartan måste ha sin slutliga höjd innan vi rullar, annars siktar webbläsaren
-  // på en position som försvinner när remsan krymper.
-  document.getElementById('ruttmap').classList.add('fast');
-  setStrip(routeV.short);
-  el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-}
-// Kartan krymper till en remsa när man rullar, så den syns kvar bland stadskorten.
-document.getElementById('scroll').addEventListener('scroll', () => {
-  if (!document.getElementById('s-rutt').classList.contains('on') || !routeV) return;
-  const t = document.getElementById('scroll').scrollTop;
-  document.getElementById('ruttmap').classList.toggle('fast', t > 2);
-  setStrip(Math.max(routeV.short, RTALL - t));
-}, { passive: true });
-
 /* ---------- Detaljpanel ---------- */
 /* ---------- När hör punkten hemma? ---------- */
 // Byter mellan schemalagd (datum + tid) och bara knuten till en ort.
@@ -1086,13 +1071,13 @@ function drawPlaces() {
         ${p.photo && PHOTOS[p.photo] ? `<img class="pthumb" src="${PHOTOS[p.photo]}" alt="">`
           : `<div class="ico">${ic[p.cat] || '📍'}</div>`}
         <div style="flex:1;min-width:0">
-          <div style="font-size:15px;font-weight:650">${esc(p.name)}</div>
-          <div style="font-size:11.5px;color:var(--ink-faint);margin-top:2px">${
+          <div class="pl-n">${esc(p.name)}</div>
+          <div class="pl-m" style="margin-top:2px">${
             d ? a.t + ' · Dag ' + d.n + ' (' + d.dl + ')'
               : (ort ? '📍 ' + esc(ort) + ' · ingen tid satt' : 'Ingen tid satt')}</div>
         </div></div>
-      ${p.addr ? `<p style="font-size:11.5px;color:var(--ink-faint);margin:7px 0 0;line-height:1.4">📍 ${esc(p.addr)}</p>` : ''}
-      ${p.note ? `<p style="font-size:12.5px;color:var(--ink-soft);margin:9px 0 0;line-height:1.45">${esc(p.note)}</p>` : ''}
+      ${p.addr ? `<p class="pl-a">📍 ${esc(p.addr)}</p>` : ''}
+      ${p.note ? `<p class="pl-note">${esc(p.note)}</p>` : ''}
       <div class="tags" style="margin-top:8px">${tagHtml(a.g || ['egen', p.cat])}</div></div>`;
   }).join('') : '<div class="empty"><div class="e">🍜</div><p>Inga egna platser än.<br>Lägg till restauranger och museer<br>ni hittar på vägen.</p></div>';
 }
@@ -1421,6 +1406,14 @@ function drawHotels() {
 }
 
 /* ---------- Nu ---------- */
+function coverHtml(o) {
+  const bg = o.img ? `url(img/${o.img}.jpg)` : 'linear-gradient(145deg,#62651e,#49351d)';
+  return `<section class="cover" style="background-image:linear-gradient(180deg,rgba(25,21,15,.04) 25%,rgba(25,21,15,.2) 55%,rgba(25,21,15,.88) 100%),${bg}" onclick="${o.go}">
+    <div class="ctop"><div><span class="lt">Japansk tid · ${o.hm}</span><span class="hn">${o.label}</span></div>
+    <div class="cr"><span class="lt">${o.dayTxt}</span><span class="fd">${o.dateTxt}</span></div></div>
+    <div class="ccopy"><h1>${esc(o.title)}</h1><div class="cdesc">${esc(o.desc)}</div>
+    <div class="cmeta"><div class="ct">${o.time}</div><div class="cp">${o.place}</div></div></div></section>`;
+}
 function drawNow() {
   const t = now();
   const iso = jp(t, { year: 'numeric', month: '2-digit', day: '2-digit' });
@@ -1429,66 +1422,48 @@ function drawNow() {
 
   const nb = document.getElementById('nowbox'), wb = document.getElementById('warnbox');
   const ex = document.getElementById('nowextra');
-  const d = DAYS.find(x => x.date === iso);
-
-  if (!d) {
+  let d = DAYS.find(x => x.date === iso), pre = null;
+  if (!d) {   // före/efter resan: nedräkningsomslag, men resten av sidan visar första dagen
     const first = new Date(DAYS[0].date + 'T00:00:00+09:00');
     const diff = Math.ceil((first - t) / 864e5);
-    document.getElementById('nusub').textContent = diff > 0 ? 'Före avresa' : 'Resan är slut';
-    nb.innerHTML = `<div class="hero" onclick="goPlan(1)">
-      <img src="img/nijo.jpg" alt="">
-      <div class="ov"><div class="badge">${diff > 0 ? 'Nedräkning' : 'Tack för resan'}</div>
-      <h2>${diff > 0 ? (diff === 1 ? 'Imorgon bär det av' : diff + ' dagar kvar') : 'Resan är genomförd'}</h2>
-      <div class="mt">${diff > 0 ? 'Avresa 12 oktober · Arlanda 09:00' : '12–27 oktober 2026'}</div></div></div>`;
-    wb.innerHTML = '';
-    ex.innerHTML = `<div class="mini"><div class="mi">🗾</div><div class="mt">
-      <b>Hela resplanen finns i appen</b>16 dagar, Kyoto till Tokyo</div></div>`;
-    return;
+    pre = { diff };
+    d = diff > 0 ? DAYS[0] : DAYS[DAYS.length - 1];
   }
 
   document.getElementById('nusub').textContent = `Dag ${d.n} · ${d.wd} ${d.dl}`;
-  const m = mins(hm);
+  const m = pre ? (pre.diff > 0 ? -1 : 1440) : mins(hm);
   const eff = i => S.times['d' + d.n + '-' + i] || d.acts[i].t;
   const order = d.acts.map((a, i) => i).sort((x, y) => mins(eff(x)) - mins(eff(y)));
   let ci = -1, ni = -1;
   order.forEach(i => { if (mins(eff(i)) <= m) ci = i; else if (ni < 0) ni = i; });
 
-  let h = '';
-  if (ci >= 0) {
-    const a = d.acts[ci];
-    h += `<div class="hero" onclick="openAct('d${d.n}-${ci}')">
-      ${a.img ? `<img src="img/${a.img}.jpg" alt="">` : `<div class="noimg">${a.i || '📍'}</div>`}
-      <div class="tapicon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><path d="M9 6l6 6-6 6"/></svg></div>
-      <div class="ov"><div class="badge">Pågår nu</div><h2>${esc(a.n)}</h2>
-      <div class="mt">Startade ${eff(ci)}${a.m ? ' · ' + esc(a.m) : ''}</div></div></div>`;
-  } else {
-    const i0 = order[0], a = d.acts[i0];
-    h += `<div class="hero" onclick="openAct('d${d.n}-${i0}')">
-      ${a.img ? `<img src="img/${a.img}.jpg" alt="">` : `<div class="noimg">${a.i || '🌅'}</div>`}
-      <div class="ov"><div class="badge">Dagen börjar</div><h2>${esc(d.title)}</h2>
-      <div class="mt">Första punkten ${eff(i0)} · ${esc(a.n)}</div></div></div>`;
-  }
+  const ck = ci >= 0 ? ci : order[0], ca = d.acts[ck];
+  const bg = u => u ? `background-image:url(img/${u}.jpg)` : '';
+  let h = pre ? coverHtml({ img: 'nijo', label: pre.diff > 0 ? 'Nedräkning' : 'Tack för resan',
+    title: pre.diff > 0 ? (pre.diff === 1 ? 'Imorgon bär det av' : pre.diff + ' dagar kvar') : 'Resan är genomförd',
+    desc: pre.diff > 0 ? 'Första dagen: ' + d.title : '16 dagar, Kyoto till Tokyo.', time: pre.diff > 0 ? eff(ck) : '', place: pre.diff > 0 ? esc(d.city) : 'Tokyo',
+    hm, go: pre.diff > 0 ? `openAct('d${d.n}-${ck}')` : 'goPlan(1)', dayTxt: `${DAYS.length} dagar`, dateTxt: '12–27 oktober 2026' }) :
+    coverHtml({ img: ca.img, label: ci >= 0 ? 'Pågår nu' : 'Dagen börjar', title: ci >= 0 ? ca.n : d.title,
+    desc: ca.d || ca.m || '', time: eff(ck), place: esc(d.city), hm, go: `openAct('d${d.n}-${ck}')`,
+    dayTxt: `Dag ${pad(d.n)} / ${DAYS.length}`, dateTxt: `${d.wd} ${d.dl}` });
+  const tot0 = d.acts.length, dn0 = d.acts.filter((a, i) => S.done['d' + d.n + '-' + i]).length;
+  h += `<div class="nowbody"><div class="phead"><span>Dagens program</span><span>${dn0} av ${tot0} klara</span></div>
+    <div class="track" style="grid-template-columns:repeat(${tot0},1fr)">${order.map(i => `<i class="${S.done['d' + d.n + '-' + i] ? 'done' : i === ci ? 'now' : ''}"></i>`).join('')}</div>`;
   if (ni >= 0) {
     const a = d.acts[ni], dm = mins(eff(ni)) - m;
-    h += `<div class="nxt" onclick="openAct('d${d.n}-${ni}')">
-      ${a.img ? `<img src="img/${a.img}.jpg" alt="">` : `<div class="ph">${a.i || '📍'}</div>`}
-      <div class="b"><div class="lb">Härnäst · om ${dm >= 60 ? Math.floor(dm / 60) + ' tim' + (dm % 60 ? ' ' + pad(dm % 60) + ' min' : '') : dm + ' min'}</div>
-      <div class="t">${esc(a.n)}</div><div class="m">${eff(ni)}${a.m ? ' · ' + esc(a.m) : ''}</div></div></div>`;
-  } else {
-    h += `<div class="nxt" onclick="goPlan(${d.n})"><div class="ph">🛏️</div><div class="b">
-      <div class="lb">Kvällen</div><div class="t">Dagens program är slut</div><div class="m">${esc(d.hotel)}</div></div></div>`;
-  }
+    h += `<div class="heading"><strong>${pre ? 'Första dagen' : 'Härnäst'}</strong><em>${pre ? d.wd + ' ' + d.dl : 'om ' + (dm >= 60 ? Math.floor(dm / 60) + ' tim' + (dm % 60 ? ' ' + pad(dm % 60) + ' min' : '') : dm + ' min')}</em></div>
+      <section class="story" onclick="openAct('d${d.n}-${ni}')"><div class="simg" style="${bg(a.img)}">${a.img ? '' : a.i || '📍'}</div>
+      <div class="scopy"><div class="stime">${eff(ni)}</div><h2>${esc(a.n)}</h2><p>${esc(a.m || '')}</p></div></section>`;
+    const rest = order.filter(i => mins(eff(i)) > mins(eff(ni))).slice(0, 3);
+    if (rest.length) h += `<div class="more">${pre ? 'Senare under dagen' : 'Senare idag'}</div>` + rest.map(i => { const a2 = d.acts[i];
+      return `<section class="later" onclick="openAct('d${d.n}-${i}')"><div class="limg" style="${bg(a2.img)}">${a2.img ? '' : a2.i || '📍'}</div>
+        <div><div class="ltime">${eff(i)}</div><h3>${esc(a2.n)}</h3><p>${esc(a2.m || '')}</p></div></section>`; }).join('');
+  } else h += `<div class="heading"><strong>Kvällen</strong><em>Dagens program är slut</em></div>`;
+  h += '</div>';
   nb.innerHTML = h;
   wb.innerHTML = d.warn ? `<div class="warn"><div class="wi">⚠️</div><p><b>Tänk på</b>${esc(d.warn)}</p></div>` : '';
 
-  const tot = d.acts.length, dn = d.acts.filter((a, i) => S.done['d' + d.n + '-' + i]).length;
-  ex.innerHTML = `
-    <div class="mini"><div class="mi">📍</div><div class="mt">
-      <b>${esc(d.hotel)}</b>${esc(d.addr)}</div></div>
-    <div class="mini"><div class="mi">✓</div>
-      <div class="prog"><i style="width:${tot ? dn / tot * 100 : 0}%"></i></div>
-      <div class="pnum">${dn} / ${tot}</div></div>
-    <p class="hint">Tiderna är uppskattade utifrån reseplanens ”förmiddag/eftermiddag”. Öppna en punkt för att ändra.</p>`;
+  ex.innerHTML = `<section class="hotel"><div><small>${pre ? 'Hotell första natten' : 'Hotell ikväll'}</small><h3>${esc(d.hotel)}</h3></div><span>${esc(d.addr)}</span></section>`;
 }
 function goPlan(n) {
   sel = n; drawChips(); drawActs();
