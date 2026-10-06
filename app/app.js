@@ -19,10 +19,10 @@ const KEY = 'japan2026';
 const TZ = 'Asia/Tokyo';
 
 const S = Object.assign({ done: {}, notes: {}, places: [], times: {}, tags: {}, dismissed: {}, contacts: {},
-                          days: {}, citys: {}, cnotes: {}, pack: null },
+                          days: {}, citys: {}, cnotes: {}, pimg: {}, pack: null, packCats: null },
   JSON.parse(localStorage.getItem(KEY) || '{}'));
 S.contacts = S.contacts || {};
-S.days = S.days || {}; S.citys = S.citys || {}; S.cnotes = S.cnotes || {};
+S.days = S.days || {}; S.citys = S.citys || {}; S.cnotes = S.cnotes || {}; S.pimg = S.pimg || {};
 const save = () => localStorage.setItem(KEY, JSON.stringify(S));
 
 let sel = 1, filt = 'all', cat = 'alla', cur = null, mediaMode = 'bild', editTags = [];
@@ -54,6 +54,7 @@ function buildIndex() {
     const a = IDX[k];
     if (S.times[k]) a.t = S.times[k];
     if (S.tags[k]) a.g = S.tags[k].slice();
+    if (S.pimg[k]) { a.photo = S.pimg[k].id; a.credit = S.pimg[k].credit; }   // eget foto på programpunkt
     // Flyttad till annan dag, eller lossad från schemat och knuten till en ort
     if (S.days[k] !== undefined) a.dayN = S.days[k];
     if (S.citys[k] !== undefined) a.cityN = S.citys[k];
@@ -363,7 +364,6 @@ function drawCities() {
         <div class="pill">${esc(c.dl)}</div>
         <p>${esc(c.txt)}</p>
         <div class="lk"><span class="go"></span>
-        ${antal ? `<span class="ext">${antal} egna platser</span>` : ''}
         ${S.cnotes[c.n] ? '<span class="ext">✎ anteckning</span>' : ''}</div>
       </div></div>`;
   }).join('');
@@ -525,6 +525,10 @@ function fyllStadsval(id, vald) {
   .forEach(b => b.onclick = () => setWhen(pre, b.dataset.w)));
 
 function openAct(k) {
+  // Stadskortet ligger över aktivitetskortet (samma z-index, senare i DOM) — lägg undan det
+  // och kom ihåg staden så vi kan gå tillbaka dit när aktivitetskortet stängs.
+  const cs = document.getElementById('citysheet');
+  if (cs.classList.contains('on')) { retCity = curCity; cs.classList.remove('on'); cs.style.transform = ''; }
   cur = k; mediaMode = 'bild';
   const a = IDX[k], d = DAYS.find(x => x.n === a.dayN);
   document.getElementById('shT').textContent = a.n;
@@ -547,6 +551,9 @@ function openAct(k) {
   document.getElementById('shSw').classList.toggle('on', !!S.done[k]);
   document.getElementById('delBtn').style.display = a.own ? '' : 'none';
   drawMedia();
+  editPhoto = null;
+  phReset('sh');
+  document.getElementById('sheet').scrollTop = 0;
   document.getElementById('sheet').classList.add('on');
   document.getElementById('scrim').classList.add('on');
   shBase = shSnapshot();
@@ -609,9 +616,24 @@ function toggleDone() {
   document.getElementById('shSw').classList.toggle('on', !!S.done[cur]);
   drawActs(); drawNow();
 }
-function saveDetail() {
+async function saveDetail() {
   S.notes[cur] = document.getElementById('shN').value;
   const p = S.places.find(x => x.id === cur);
+  if (editPhoto) {
+    const old = p ? p.photo : (S.pimg[cur] || {}).id;
+    try {
+      if (editPhoto.blob) {
+        const id = 'ph' + Date.now();
+        await photoPut(id, editPhoto.blob);
+        if (p) { p.photo = id; p.credit = editPhoto.credit; }
+        else S.pimg[cur] = { id, credit: editPhoto.credit };
+        if (old) photoDel(old);
+      } else if (editPhoto.remove) {
+        if (p) { delete p.photo; delete p.credit; } else delete S.pimg[cur];
+        if (old) photoDel(old);
+      }
+    } catch (e) { alert('Fotot kunde inte sparas: ' + e.message); }
+  }
   if (whenLage('sh') === 'tid') {
     const tv = document.getElementById('shTime').value;
     if (tv) { S.times[cur] = tv; if (p) p.t = tv; }
@@ -628,7 +650,6 @@ function saveDetail() {
   S.tags[cur] = editTags.filter(t => t !== 'oplanerad');
   save(); buildIndex(); closeSheets();
   drawActs(); drawPlaces(); drawNow(); drawCities();
-  if (document.getElementById('citysheet').dataset.open) drawCityPlaces();
 }
 function delPlace() {
   if (!confirm('Ta bort den här platsen?')) return;
@@ -638,10 +659,15 @@ function delPlace() {
   delete S.notes[cur]; delete S.done[cur]; delete S.times[cur]; delete S.tags[cur];
   save(); buildIndex(); closeSheets(); drawActs(); drawPlaces();
 }
+let retCity = null;      // stad att återvända till när ett aktivitetskort öppnats från stadskortet
 function closeSheets() {
+  const fromAct = document.getElementById('sheet').classList.contains('on');
   document.querySelectorAll('.sheet').forEach(s => { s.classList.remove('on'); s.style.transform = ''; });
   document.getElementById('scrim').classList.remove('on');
   shBase = null; curCity = null;
+  const back = fromAct ? retCity : null;
+  retCity = null;
+  if (back) openCity(back);
 }
 
 let toastT = null;
@@ -661,43 +687,46 @@ const shSnapshot = () => JSON.stringify([
   document.getElementById('shDate').value,
   whenLage('sh'),
   document.getElementById('shCity').value,
-  editTags.slice().sort()]);
+  editTags.slice().sort(),
+  editPhoto ? (editPhoto.remove ? 'r' : 'n' + editPhoto.blob.size) : '']);
 const shDirty = () => shBase !== null && shSnapshot() !== shBase;
 
 (function dragToClose() {
-  const sh = document.getElementById('sheet');
-  let y0 = null, dy = 0, aktiv = false;
-  sh.addEventListener('touchstart', e => {
-    y0 = null;
-    // Bara från toppen av kortet, och inte när man träffar något man kan trycka på.
-    if (e.touches.length !== 1 || sh.scrollTop > 0 ||
-        e.target.closest('button,a,input,select,textarea,.tg')) return;
-    y0 = e.touches[0].clientY; dy = 0; aktiv = false;
-  }, { passive: true });
-  sh.addEventListener('touchmove', e => {
-    if (y0 === null) return;
-    const d = e.touches[0].clientY - y0;
-    if (!aktiv) {
-      if (d < 8) return;                  // vänta tills riktningen är tydlig
-      aktiv = true;
-      sh.style.transition = 'none';
-    }
-    dy = Math.max(0, d);
-    e.preventDefault();                   // annars tar Safari över gesten som rullning
-    sh.style.transform = `translateY(${dy}px)`;
-  }, { passive: false });
-  const slapp = () => {
-    if (y0 === null) return;
-    sh.style.transition = '';
-    sh.style.transform = '';
-    if (aktiv && dy > 90) {
-      if (shDirty()) toast('Du har ändringar — spara eller stäng.');
-      else closeSheets();
-    }
-    y0 = null; aktiv = false;
-  };
-  sh.addEventListener('touchend', slapp);
-  sh.addEventListener('touchcancel', slapp);
+  ['sheet', 'citysheet'].forEach(id => {
+    const sh = document.getElementById(id);
+    let y0 = null, dy = 0, aktiv = false;
+    sh.addEventListener('touchstart', e => {
+      y0 = null;
+      // Bara från toppen av kortet, och inte när man träffar något man kan trycka på.
+      if (e.touches.length !== 1 || sh.scrollTop > 0 ||
+          e.target.closest('button,a,input,select,textarea,.tg,.wxrow,.fchips')) return;
+      y0 = e.touches[0].clientY; dy = 0; aktiv = false;
+    }, { passive: true });
+    sh.addEventListener('touchmove', e => {
+      if (y0 === null) return;
+      const d = e.touches[0].clientY - y0;
+      if (!aktiv) {
+        if (d < 8) return;                  // vänta tills riktningen är tydlig
+        aktiv = true;
+        sh.style.transition = 'none';
+      }
+      dy = Math.max(0, d);
+      e.preventDefault();                   // annars tar Safari över gesten som rullning
+      sh.style.transform = `translateY(${dy}px)`;
+    }, { passive: false });
+    const slapp = () => {
+      if (y0 === null) return;
+      sh.style.transition = '';
+      sh.style.transform = '';
+      if (aktiv && dy > 90) {
+        if (id === 'sheet' && shDirty()) toast('Du har ändringar — spara eller stäng.');
+        else closeSheets();
+      }
+      y0 = null; aktiv = false;
+    };
+    sh.addEventListener('touchend', slapp);
+    sh.addEventListener('touchcancel', slapp);
+  });
 })();
 
 /* ---------- Egna platser ---------- */
@@ -837,45 +866,80 @@ function shrink(src, max = 900, q = 0.72) {
   });
 }
 
-async function pickPhoto(input) {
+let editPhoto = null;   // vid redigering: null = oförändrad · {blob,credit} = nytt foto · {remove:true} = ta bort
+const phGet = pre => pre === 'sh' ? editPhoto : newPhoto;
+const phSet = (pre, v) => { if (pre === 'sh') editPhoto = v; else newPhoto = v; };
+const PH_HINT = {
+  ad: 'Fotot sparas på enheten och visas på platsen. ”Från platsen” kräver att du valt en plats ovan.',
+  sh: 'Fotot sparas på enheten och visas på kortet. ”Från platsen” kräver att punkten har en position.'
+};
+const phExisting = () => { const a = IDX[cur] || {}; return a.photo && PHOTOS[a.photo] ? a.photo : null; };
+// Nollställ fotodelen av redigeringskortet när det öppnas
+function phReset(pre) {
+  document.getElementById(pre + 'PhotoHint').textContent = PH_HINT[pre];
+  document.getElementById(pre + 'Sug').innerHTML = '';
+  const a = IDX[cur] || {};
+  document.getElementById('shSugBtn').disabled = a.lat == null;
+  drawPhotoPrev(pre);
+}
+
+async function pickPhoto(input, pre = 'ad') {
   const f = input.files[0];
   input.value = '';
   if (!f) return;
-  const hint = document.getElementById('adPhotoHint');
+  const hint = document.getElementById(pre + 'PhotoHint');
   hint.textContent = 'Bearbetar fotot…';
   try {
-    newPhoto = { blob: await shrink(f), credit: '' };
-    drawPhotoPrev();
-    hint.textContent = `Fotot sparas på enheten (${Math.round(newPhoto.blob.size / 1024)} kB).`;
+    const ph = { blob: await shrink(f), credit: '' };
+    phSet(pre, ph);
+    drawPhotoPrev(pre);
+    hint.textContent = `Fotot sparas på enheten (${Math.round(ph.blob.size / 1024)} kB).`;
   } catch (e) {
     hint.textContent = 'Kunde inte läsa fotot: ' + e.message;
   }
 }
-function drawPhotoPrev() {
-  const el = document.getElementById('adPhotoPrev');
-  if (!newPhoto) { el.innerHTML = ''; return; }
-  const u = URL.createObjectURL(newPhoto.blob);
-  el.innerHTML = `<div class="pprev"><img src="${u}" alt="">
-    <button onclick="clearPhoto()">Ta bort</button>
-    ${newPhoto.credit ? `<div class="cr">${esc(newPhoto.credit)}</div>` : ''}</div>`;
+function drawPhotoPrev(pre = 'ad') {
+  const el = document.getElementById(pre + 'PhotoPrev'), ph = phGet(pre);
+  const arg = pre === 'sh' ? "'sh'" : '';
+  if (ph && ph.blob) {
+    const u = URL.createObjectURL(ph.blob);
+    el.innerHTML = `<div class="pprev"><img src="${u}" alt="">
+      <button onclick="clearPhoto(${arg})">${pre === 'sh' ? 'Ångra' : 'Ta bort'}</button>
+      ${ph.credit ? `<div class="cr">${esc(ph.credit)}</div>` : ''}</div>`;
+  } else if (pre === 'sh' && ph && ph.remove) {
+    el.innerHTML = `<p class="hint">Fotot tas bort när du sparar. <button class="editlink" onclick="clearPhoto('sh')">Ångra</button></p>`;
+  } else if (pre === 'sh' && phExisting()) {
+    const a = IDX[cur];
+    el.innerHTML = `<div class="pprev"><img src="${PHOTOS[a.photo]}" alt="">
+      <button onclick="clearPhoto('sh')">Ta bort</button>
+      ${a.credit ? `<div class="cr">${esc(a.credit)}</div>` : ''}</div>`;
+  } else el.innerHTML = '';
 }
-function clearPhoto() {
+function clearPhoto(pre = 'ad') {
+  if (pre === 'sh') {
+    // Har man valt något nytt eller markerat borttagning: ångra. Annars: markera befintligt foto för borttagning.
+    editPhoto = editPhoto ? null : (phExisting() ? { remove: true } : null);
+    document.getElementById('shSug').innerHTML = '';
+    document.getElementById('shPhotoHint').textContent = PH_HINT.sh;
+    drawPhotoPrev('sh');
+    return;
+  }
   newPhoto = null;
   document.getElementById('adPhotoPrev').innerHTML = '';
-  document.getElementById('adPhotoHint').textContent =
-    'Fotot sparas på enheten och visas på platsen. ”Från platsen” kräver att du valt en plats ovan.';
+  document.getElementById('adPhotoHint').textContent = PH_HINT.ad;
 }
 
 /* Bilder nära koordinaten, från Wikimedia Commons. Träffar beror på vad som finns
    fotograferat — bra för sevärdheter, ofta tomt för små restauranger. */
-async function suggestPhotos() {
-  if (!picked) return;
-  const box = document.getElementById('adSug');
+async function suggestPhotos(pre = 'ad') {
+  const src = pre === 'sh' ? IDX[cur] : picked;
+  if (!src || src.lat == null) return;
+  const box = document.getElementById(pre + 'Sug');
   box.innerHTML = '<p class="searching">Söker bilder nära platsen…</p>';
   try {
     const u = 'https://commons.wikimedia.org/w/api.php?action=query&format=json&origin=*' +
       '&generator=geosearch&ggsnamespace=6&ggslimit=10&ggsradius=400' +
-      `&ggscoord=${picked.lat}|${picked.lng}` +
+      `&ggscoord=${src.lat}|${src.lng}` +
       '&prop=imageinfo&iiprop=url|extmetadata&iiurlwidth=300';
     const d = await (await fetch(u)).json();
     const pages = Object.values((d.query || {}).pages || {});
@@ -894,15 +958,15 @@ async function suggestPhotos() {
       };
     }).filter(x => x.thumb);
     box.innerHTML = '<div class="sugg">' + sugg.map((x, i) =>
-      `<img src="${x.thumb}" alt="" onclick="useSuggestion(${i},this)">`).join('') + '</div>';
+      `<img src="${x.thumb}" alt="" onclick="useSuggestion(${i},this,'${pre}')">`).join('') + '</div>';
   } catch (e) {
     box.innerHTML = '<p class="searching">Bilsökningen misslyckades — kräver nät.</p>';
   }
 }
-async function useSuggestion(i, el) {
+async function useSuggestion(i, el, pre = 'ad') {
   const s = sugg[i];
   el.classList.add('busy');
-  const hint = document.getElementById('adPhotoHint');
+  const hint = document.getElementById(pre + 'PhotoHint');
   hint.textContent = 'Hämtar bilden…';
   try {
     // Be api:et om 900 px — är originalet mindre får vi originalstorleken i stället
@@ -914,10 +978,11 @@ async function useSuggestion(i, el) {
     const url = ii.thumburl || ii.url;
     if (!url) throw new Error('ingen bildadress');
     const blob = await (await fetch(url)).blob();
-    newPhoto = { blob: await shrink(blob), credit: s.credit };
-    drawPhotoPrev();
-    document.getElementById('adSug').innerHTML = '';
-    hint.textContent = `Bilden sparas på enheten (${Math.round(newPhoto.blob.size / 1024)} kB).`;
+    const ph = { blob: await shrink(blob), credit: s.credit };
+    phSet(pre, ph);
+    drawPhotoPrev(pre);
+    document.getElementById(pre + 'Sug').innerHTML = '';
+    hint.textContent = `Bilden sparas på enheten (${Math.round(ph.blob.size / 1024)} kB).`;
   } catch (e) {
     el.classList.remove('busy');
     hint.textContent = 'Kunde inte hämta bilden: ' + e.message;
@@ -1024,11 +1089,25 @@ function packForslag() {
   });
   return ut;
 }
+/* Packlistan är nu kategorier: S.packCats = [{ id, name, collapsed, done, items: [{ id, t, vf, done }] }].
+   Äldre, platt lista (S.pack) flyttas över till en första kategori. */
 function packInit() {
-  if (S.pack) return;
-  S.pack = packForslag().map((x, i) => ({ id: 'f' + i, t: x.t, vf: x.vf, done: 0 }));
+  if (Array.isArray(S.packCats)) return;
+  const old = Array.isArray(S.pack) ? S.pack : null;
+  const items = old || packForslag().map((x, i) => ({ id: 'f' + i, t: x.t, vf: x.vf, done: 0 }));
+  S.packCats = items.length
+    ? [{ id: 'c' + Date.now(), name: old ? 'Packlista' : 'Förslag från vädret', collapsed: 0, done: 0, items }]
+    : [];
+  S.pack = null;
   save();
 }
+const pkAll = () => S.packCats.flatMap(c => c.items);
+const catDone = c => c.items.length ? c.items.every(x => x.done) : !!c.done;
+const PK_GRIP = '<svg width="14" height="18" viewBox="0 0 14 18" fill="currentColor"><circle cx="4" cy="3" r="1.6"/><circle cx="10" cy="3" r="1.6"/><circle cx="4" cy="9" r="1.6"/><circle cx="10" cy="9" r="1.6"/><circle cx="4" cy="15" r="1.6"/><circle cx="10" cy="15" r="1.6"/></svg>';
+const PK_CHECK = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="4"><path d="M4 12.5l5.5 5.5L20 7"/></svg>';
+const PK_DASH = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="4"><path d="M6 12h12"/></svg>';
+const PK_CHEV = '<svg class="chev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M9 5l7 7-7 7"/></svg>';
+
 function drawPack() {
   packInit();
   let lagst = 99, hogst = -99, lagstOrt = '', hogstOrt = '', regn = 0, dagar = 0;
@@ -1051,32 +1130,205 @@ function drawPack() {
       <div class="del"><div class="k">Kallast natt</div><div class="v">${Math.round(lagst)}°</div><div class="n">${esc(lagstOrt)}</div></div>
       <div class="del"><div class="k">Regndagar</div><div class="v">${regn}</div><div class="n">av ${dagar}</div></div>
     </div></div>` : '';
-  const klara = S.pack.filter(x => x.done).length;
-  document.getElementById('packprog').innerHTML = S.pack.length
-    ? `<div class="bar"><i style="width:${Math.round(klara / S.pack.length * 100)}%"></i></div>
-       <div class="n">${klara} av ${S.pack.length}</div>` : '';
-  document.getElementById('packlist').innerHTML = S.pack.length ? S.pack.map(x =>
-    `<div class="pk ${x.done ? 'klar' : ''}" onclick="togPack('${x.id}')">
-      <div class="box">${x.done ? '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="4"><path d="M4 12.5l5.5 5.5L20 7"/></svg>' : ''}</div>
-      <div class="t">${esc(x.t)}</div>
-      ${x.vf ? `<span class="vf">${esc(x.vf)}</span>` : ''}
-      <button class="del" onclick="event.stopPropagation();delPack('${x.id}')">×</button></div>`).join('')
-    : '<p class="hint">Listan är tom. Lägg till det du vill komma ihåg.</p>';
+  const alla = pkAll(), klara = alla.filter(x => x.done).length;
+  document.getElementById('packprog').innerHTML = alla.length
+    ? `<div class="bar"><i style="width:${Math.round(klara / alla.length * 100)}%"></i></div>
+       <div class="n">${klara} av ${alla.length}</div>` : '';
+  document.getElementById('packlist').innerHTML = S.packCats.length ? S.packCats.map(packCatHtml).join('')
+    : '<div class="empty"><div class="e">🧳</div><p>Inga kategorier än.<br>Skapa en, t.ex. ”Kameraväska” eller ”Kabinväska”,<br>och lägg sakerna i den.</p></div>';
 }
+function packRowHtml(x) {
+  return `<div class="pk ${x.done ? 'klar' : ''}" data-id="${x.id}" onclick="togPack('${x.id}')">
+    <div class="grip" onpointerdown="pkDown(event,'item','${x.id}')" onclick="event.stopPropagation()">${PK_GRIP}</div>
+    <div class="box">${x.done ? PK_CHECK : ''}</div>
+    <div class="t">${esc(x.t)}</div>
+    ${x.vf ? `<span class="vf">${esc(x.vf)}</span>` : ''}
+    <button class="del" onclick="event.stopPropagation();delPack('${x.id}')">×</button></div>`;
+}
+function packCatHtml(c) {
+  const all = catDone(c), some = !all && c.items.some(x => x.done);
+  const n = c.items.length, k = c.items.filter(x => x.done).length;
+  return `<div class="pkcat ${all ? 'klar' : ''} ${c.collapsed ? 'coll' : ''}" data-cid="${c.id}">
+    <div class="pkhead">
+      <div class="grip" onpointerdown="pkDown(event,'cat','${c.id}')">${PK_GRIP}</div>
+      <div class="cbox ${all ? 'on' : some ? 'part' : ''}" onclick="togCat('${c.id}')">${all ? PK_CHECK : some ? PK_DASH : ''}</div>
+      ${pkEditId === c.id
+        ? `<input type="text" class="cedit" id="pkren-${c.id}" value="${esc(c.name)}" enterkeyhint="done"
+             onkeydown="if(event.key==='Enter')this.blur();else if(event.key==='Escape'){this.dataset.x=1;this.blur();}"
+             onblur="finishRename('${c.id}',this)">`
+        : `<div class="ctitle" onclick="togColl('${c.id}')">${PK_CHEV}<span class="cn">${esc(c.name)}</span><span class="cc">${n ? k + '/' + n : 'tom'}</span></div>`}
+      <button type="button" class="cb" onclick="renameCat('${c.id}')" aria-label="Byt namn">✎</button>
+      <button class="cb" onclick="delCat('${c.id}')" aria-label="Ta bort kategori">×</button>
+    </div>
+    <div class="pkwrap">
+      <div class="pkbody">${c.items.map(packRowHtml).join('')}</div>
+      <div class="pkaddrow">
+        <input type="text" id="pkin-${c.id}" placeholder="Lägg till sak…" enterkeyhint="done"
+          onkeydown="if(event.key==='Enter')addPackItem('${c.id}')">
+        <button onclick="addPackItem('${c.id}')">+</button>
+      </div>
+    </div>
+  </div>`;
+}
+const catById = id => S.packCats.find(c => c.id === id);
 function togPack(id) {
-  const x = S.pack.find(p => p.id === id);
+  const x = pkAll().find(p => p.id === id);
   if (x) { x.done = x.done ? 0 : 1; save(); drawPack(); }
 }
-function delPack(id) { S.pack = S.pack.filter(p => p.id !== id); save(); drawPack(); }
-function addPack() {
-  const el = document.getElementById('packNy'), t = el.value.trim();
-  if (!t) return;
-  S.pack.push({ id: 'p' + Date.now(), t, done: 0 });
-  el.value = ''; save(); drawPack();
+function togCat(id) {          // bocka av hela kategorin (eller ta bort alla bockar)
+  const c = catById(id); if (!c) return;
+  const v = catDone(c) ? 0 : 1;
+  c.done = v; c.items.forEach(x => x.done = v);
+  save(); drawPack();
 }
-document.getElementById('packNy').addEventListener('keydown', e => {
-  if (e.key === 'Enter') addPack();
+function togColl(id) {         // fäll ihop / fäll ut
+  const c = catById(id); if (!c) return;
+  c.collapsed = c.collapsed ? 0 : 1; save(); drawPack();
+}
+let pkEditId = null;
+function renameCat(id) {          // byt namn direkt i listan (prompt() fungerar inte i iOS-appar)
+  if (!catById(id)) return;
+  pkEditId = id; drawPack();
+  const el = document.getElementById('pkren-' + id);
+  if (el) { el.focus(); el.select(); }
+}
+function finishRename(id, el) {
+  if (pkEditId !== id) return;
+  pkEditId = null;
+  const c = catById(id), n = el.value.trim();
+  if (c && n && !el.dataset.x) { c.name = n; save(); }
+  drawPack();
+}
+function delCat(id) {
+  const c = catById(id); if (!c) return;
+  if (c.items.length && !confirm(`Ta bort ”${c.name}” och de ${c.items.length} sakerna i den?`)) return;
+  S.packCats = S.packCats.filter(x => x.id !== id); save(); drawPack();
+}
+function delPack(id) {
+  S.packCats.forEach(c => { c.items = c.items.filter(p => p.id !== id); });
+  save(); drawPack();
+}
+function addCat() {
+  const el = document.getElementById('packCatNy'), name = el.value.trim();
+  if (!name) return;
+  const c = { id: 'c' + Date.now(), name, collapsed: 0, done: 0, items: [] };
+  S.packCats.push(c);
+  el.value = ''; save(); drawPack();
+  const inp = document.getElementById('pkin-' + c.id); if (inp) inp.focus();
+}
+function addPackItem(cid) {
+  const c = catById(cid), el = document.getElementById('pkin-' + cid);
+  if (!c || !el) return;
+  const t = el.value.trim(); if (!t) return;
+  c.items.push({ id: 'p' + Date.now() + Math.random().toString(36).slice(2, 5), t, done: 0 });
+  if (c.items.length === 1) c.done = 0;
+  save(); drawPack();
+  const again = document.getElementById('pkin-' + cid); if (again) again.focus();
+}
+document.getElementById('packCatNy').addEventListener('keydown', e => {
+  if (e.key === 'Enter') addCat();
 });
+
+/* ---- Dra och släpp (pekskärm + mus). Handtaget (⋮⋮) startar dragningen. ----
+   Den dragna raden står kvar i DOM:en men kollapsas; en streckad plats-hållare (ph)
+   flyttas dit den skulle hamna. Vid släpp läses ordningen av från DOM:en. */
+let pkd = null;
+function pkDown(e, kind, id) {
+  if (pkd || (e.pointerType === 'mouse' && e.button !== 0)) return;
+  e.preventDefault(); e.stopPropagation();
+  const el = document.querySelector(kind === 'item' ? `.pk[data-id="${id}"]` : `.pkcat[data-cid="${id}"]`);
+  if (!el) return;
+  const ref = kind === 'item' ? el : el.querySelector('.pkhead');
+  const r = ref.getBoundingClientRect();
+  const ghost = ref.cloneNode(true);
+  ghost.classList.add('pkghost');
+  Object.assign(ghost.style, { left: r.left + 'px', top: r.top + 'px', width: r.width + 'px' });
+  document.body.appendChild(ghost);
+  const ph = document.createElement('div');
+  ph.className = 'pkph';
+  ph.style.height = r.height + 'px';
+  ph.style.marginBottom = getComputedStyle(el).marginBottom;
+  el.parentNode.insertBefore(ph, el);
+  el.classList.add('dragging');
+  document.body.classList.add('pkdrag');
+  pkd = { kind, id, el, ph, ghost, dy: e.clientY - r.top, x: e.clientX, y: e.clientY, raf: 0 };
+  try { e.currentTarget.setPointerCapture(e.pointerId); } catch (_) {}
+  window.addEventListener('pointermove', pkMove);
+  window.addEventListener('pointerup', pkUp);
+  window.addEventListener('pointercancel', pkCancel);
+  pkd.raf = requestAnimationFrame(pkLoop);
+  pkPlace();
+}
+function pkMove(e) {
+  if (!pkd) return;
+  pkd.x = e.clientX; pkd.y = e.clientY;
+  pkPlace();
+}
+function pkPlace() {
+  const d = pkd; if (!d) return;
+  d.ghost.style.top = (d.y - d.dy) + 'px';
+  const list = document.getElementById('packlist');
+  const lr = list.getBoundingClientRect();
+  if (d.kind === 'cat') {
+    const cats = [...list.querySelectorAll(':scope > .pkcat:not(.dragging)')];
+    const before = cats.find(c => { const b = c.querySelector('.pkhead').getBoundingClientRect(); return d.y < b.top + b.height / 2; });
+    before ? list.insertBefore(d.ph, before) : list.appendChild(d.ph);
+    return;
+  }
+  const under = document.elementFromPoint(lr.left + lr.width / 2, d.y);
+  const cat = under && under.closest('.pkcat');
+  if (!cat) return;
+  const body = cat.querySelector('.pkbody');
+  if (cat.classList.contains('coll')) body.appendChild(d.ph);          // hamnar sist i ihopfälld kategori
+  else if (under.closest('.pkhead')) body.insertBefore(d.ph, body.firstChild);
+  else {
+    const rows = [...body.querySelectorAll(':scope > .pk:not(.dragging)')];
+    const before = rows.find(x => { const b = x.getBoundingClientRect(); return d.y < b.top + b.height / 2; });
+    before ? body.insertBefore(d.ph, before) : body.appendChild(d.ph);
+  }
+  list.querySelectorAll('.pkcat.droptarget').forEach(c => c.classList.remove('droptarget'));
+  cat.classList.add('droptarget');
+}
+function pkLoop() {                // rulla när fingret närmar sig kanten
+  if (!pkd) return;
+  const sc = document.getElementById('scroll'), sr = sc.getBoundingClientRect();
+  const top = sr.top + 90, bot = sr.bottom - 140;
+  let v = 0;
+  if (pkd.y < top) v = -Math.min(16, (top - pkd.y) / 4);
+  else if (pkd.y > bot) v = Math.min(16, (pkd.y - bot) / 4);
+  if (v) { sc.scrollTop += v; pkPlace(); }
+  pkd.raf = requestAnimationFrame(pkLoop);
+}
+function pkEnd(commit) {
+  const d = pkd; if (!d) return;
+  pkd = null;
+  cancelAnimationFrame(d.raf);
+  window.removeEventListener('pointermove', pkMove);
+  window.removeEventListener('pointerup', pkUp);
+  window.removeEventListener('pointercancel', pkCancel);
+  d.ghost.remove();
+  document.body.classList.remove('pkdrag');
+  if (commit) pkCommit(d);
+  save(); drawPack();
+}
+const pkUp = () => pkEnd(true);
+const pkCancel = () => pkEnd(false);
+function pkCommit(d) {
+  const list = document.getElementById('packlist');
+  if (d.kind === 'item') {
+    const byId = Object.fromEntries(pkAll().map(x => [x.id, x]));
+    S.packCats.forEach(c => {
+      const cel = list.querySelector(`.pkcat[data-cid="${c.id}"] .pkbody`);
+      if (!cel) return;
+      c.items = [...cel.children].map(n => n === d.ph ? byId[d.id]
+        : (n.classList.contains('pk') && !n.classList.contains('dragging') ? byId[n.dataset.id] : null)).filter(Boolean);
+    });
+  } else {
+    const byId = Object.fromEntries(S.packCats.map(c => [c.id, c]));
+    S.packCats = [...list.children].map(n => n === d.ph ? byId[d.id]
+      : (n.classList.contains('pkcat') && !n.classList.contains('dragging') ? byId[n.dataset.cid] : null)).filter(Boolean);
+  }
+}
 
 /* ---------- Färdledare ----------
    Numren ligger medvetet inte i koden — de fylls i på enheten och sparas bara där. */
@@ -1244,8 +1496,8 @@ function importData(input) {
     try {
       const o = JSON.parse(r.result);
       if (!confirm('Ersätt anteckningar, bockar och egna platser med innehållet i filen?')) return;
-      ['done', 'notes', 'places', 'times', 'tags', 'contacts'].forEach(k => { if (o[k]) S[k] = o[k]; });
-      save(); buildIndex(); drawActs(); drawPlaces(); drawNow(); drawLeaders(); backupInfo();
+      ['done', 'notes', 'places', 'times', 'tags', 'contacts', 'packCats'].forEach(k => { if (o[k]) S[k] = o[k]; });
+      save(); buildIndex(); drawActs(); drawPlaces(); drawNow(); drawLeaders(); backupInfo(); drawPack();
       alert('Importen är klar.');
     } catch (e) { alert('Kunde inte läsa filen: ' + e.message); }
   };
