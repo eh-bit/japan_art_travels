@@ -380,6 +380,8 @@ function openCity(n) {
   document.getElementById('cyM').textContent = `${c.dl} · ${natter} ${natter === 1 ? 'dag' : 'dagar'}`;
   document.getElementById('cyD').textContent = c.txt;
   document.getElementById('cyN').value = S.cnotes[n] || '';
+  drawCityNoteView();
+  setCityEdit(false);
   document.getElementById('cyL').innerHTML =
     `<a href="${c.url}" target="_blank" rel="noopener">↗ ${esc(c.lk)}</a>`;
   drawCityMedia();
@@ -435,10 +437,25 @@ function drawCityPlaces() {
       <span class="tg" style="color:${d ? TAG[p.cat].c : TAG.oplanerad.c};background:${d ? TAG[p.cat].b : TAG.oplanerad.b}">${d ? TAG[p.cat].l : 'Oplanerad'}</span></div>`;
   }).join('') : `<p class="hint">Inget här än${cyFilt !== 'alla' ? ' under det filtret' : ''}.</p>`;
 }
+// Stadskortet öppnas i visningsläge. Anteckningen går bara att ändra efter tryck på Redigera.
+function setCityEdit(on) { document.getElementById('citysheet').classList.toggle('view', !on); }
+function drawCityNoteView() {
+  const el = document.getElementById('cyNView'), t = S.cnotes[curCity] || '';
+  el.textContent = t || 'Inga anteckningar än. Tryck på Redigera för att lägga till.';
+  el.classList.toggle('hint', !t);
+}
+function startEditCity() {
+  document.getElementById('cyN').value = S.cnotes[curCity] || '';
+  setCityEdit(true);
+}
+function cancelEditCity() {
+  document.getElementById('cyN').value = S.cnotes[curCity] || '';
+  setCityEdit(false);
+}
 function saveCityNote() {
   S.cnotes[curCity] = document.getElementById('cyN').value.trim();
   if (!S.cnotes[curCity]) delete S.cnotes[curCity];
-  save(); drawCities(); toast('Anteckningen sparad.');
+  save(); drawCities(); drawCityNoteView(); setCityEdit(false); toast('Anteckningen sparad.');
 }
 function addInCity() {
   const n = curCity;
@@ -532,7 +549,7 @@ function openAct(k) {
   cur = k; mediaMode = 'bild';
   const a = IDX[k], d = DAYS.find(x => x.n === a.dayN);
   document.getElementById('shT').textContent = a.n;
-  document.getElementById('shM').textContent = a.dayN ? `Dag ${a.dayN}${d ? ' · ' + d.wd + ' ' + d.dl : ''}` : 'Oplanerad';
+  document.getElementById('shM').textContent = a.dayN ? `Dag ${a.dayN}${d ? ' · ' + d.wd + ' ' + d.dl : ''}${a.t ? ' · ' + a.t : ''}` : 'Oplanerad';
   document.getElementById('shTime').value = a.t;
   document.getElementById('shDate').value = a.date || (DAYS.find(x => x.n === sel) || DAYS[0]).date;
   fyllStadsval('shCity', a.cityN || (cityOfDay(a.dayN || sel)[0] || CITIES[0]).n);
@@ -548,6 +565,11 @@ function openAct(k) {
   document.getElementById('shL').innerHTML = (a.L || []).map(([t, u]) =>
     `<a class="${/youtube/.test(u) ? 'yt' : ''}" href="${u}" target="_blank" rel="noopener">${/youtube/.test(u) ? '▶' : '↗'} ${esc(t)}</a>`).join('');
   document.getElementById('shN').value = S.notes[k] || '';
+  document.getElementById('shTagsView').innerHTML = tagHtml(a.g);
+  const nv = document.getElementById('shNView'), nt = (S.notes[k] || '').trim();
+  nv.textContent = nt || 'Inga anteckningar än. Tryck på Redigera för att lägga till.';
+  nv.classList.toggle('hint', !nt);
+  document.getElementById('sheet').classList.add('view');   // alltid visningsläge när kortet öppnas
   document.getElementById('shSw').classList.toggle('on', !!S.done[k]);
   document.getElementById('delBtn').style.display = a.own ? '' : 'none';
   drawMedia();
@@ -557,6 +579,15 @@ function openAct(k) {
   document.getElementById('sheet').classList.add('on');
   document.getElementById('scrim').classList.add('on');
   shBase = shSnapshot();
+}
+// Aktivitetskortet öppnas i visningsläge. Redigera låser upp fälten, Avbryt återställer dem.
+function startEditAct() {
+  document.getElementById('sheet').classList.remove('view');
+  shBase = shSnapshot();
+}
+function cancelEditAct() {
+  if (shDirty() && !confirm('Kasta dina ändringar?')) return;
+  openAct(cur);
 }
 function drawMedia() {
   const a = IDX[cur], el = document.getElementById('shMedia');

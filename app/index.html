@@ -271,6 +271,15 @@ textarea{min-height:82px;resize:vertical;line-height:1.45;}
 .hint{font-size:11.5px;color:var(--ink-faint);line-height:1.5;margin:7px 2px 0;}
 .editlink{background:none;border:0;font:inherit;font-size:12px;font-weight:650;color:var(--primary);
   cursor:pointer;padding:5px 0;text-decoration:underline;}
+/* Visa-/redigeringsläge på kort */
+.thead{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;}
+.thead>div{flex:1;min-width:0;}
+.editbtn{flex:none;margin-top:16px;display:inline-flex;align-items:center;gap:5px;border:1px solid var(--border);
+  background:#fff;color:var(--primary-dark);font:inherit;font-size:12.5px;font-weight:700;padding:8px 12px;
+  border-radius:10px;cursor:pointer;}
+#sheet.view .edonly,#citysheet.view .edonly{display:none;}
+#sheet:not(.view) .vwonly,#citysheet:not(.view) .vwonly{display:none;}
+.notev{white-space:pre-wrap;}
 .nonum{font-size:12px;color:var(--ink-faint);font-style:italic;margin-bottom:5px;}
 /* Foton */
 .photorow{display:flex;gap:9px;flex-wrap:wrap;}
@@ -550,12 +559,16 @@ body.pkdrag,body.pkdrag *{-webkit-user-select:none;user-select:none;}
 
   <div class="scrim" id="scrim" onclick="closeSheets()"></div>
 
-  <div class="sheet" id="sheet">
+  <div class="sheet view" id="sheet">
     <div class="grab"></div>
     <div class="media" id="shMedia"></div>
     <div class="shpad">
-      <h3 id="shT"></h3>
-      <p class="sm" id="shM"></p>
+      <div class="thead">
+        <div><h3 id="shT"></h3><p class="sm" id="shM"></p></div>
+        <button class="editbtn vwonly" id="shEditBtn" onclick="startEditAct()">✎ Redigera</button>
+      </div>
+      <div class="tags vwonly" id="shTagsView"></div>
+      <div class="edonly">
       <label class="fl">När?</label>
       <div class="seg" id="shWhenSeg">
         <button class="on" data-w="tid">Dag och tid</button>
@@ -570,10 +583,17 @@ body.pkdrag,body.pkdrag *{-webkit-user-select:none;user-select:none;}
       </div>
       <p class="hint" id="shWhenHint"></p>
       <div class="tags tgedit" id="shTags"></div>
+      </div>
       <p class="desc" id="shD"></p>
       <div id="shMapBtn"></div>
       <div class="links" id="shL"></div>
       <div class="toggle" onclick="toggleDone()"><span>Avklarad</span><div class="sw" id="shSw"><i></i></div></div>
+      <div class="vwonly" id="shNoteViewBox">
+        <label class="fl">Min anteckning</label>
+        <p class="desc notev" id="shNView" style="margin-top:0"></p>
+        <button class="btn sec" onclick="closeSheets()">Stäng</button>
+      </div>
+      <div class="edonly">
       <label class="fl">Bild</label>
       <div class="photorow">
         <button class="pbtn" onclick="document.getElementById('shPhoto').click()">📷 Eget foto</button>
@@ -586,8 +606,9 @@ body.pkdrag,body.pkdrag *{-webkit-user-select:none;user-select:none;}
       <label class="fl">Min anteckning</label>
       <textarea id="shN" placeholder="Bokningsnummer, vad ni såg, vad ni vill minnas…"></textarea>
       <button class="btn" onclick="saveDetail()">Spara ändringar</button>
-      <button class="btn sec" onclick="closeSheets()">Stäng</button>
+      <button class="btn sec" onclick="cancelEditAct()">Avbryt</button>
       <button class="btn warn2" id="delBtn" style="display:none" onclick="delPlace()">Ta bort</button>
+      </div>
     </div>
   </div>
 
@@ -631,20 +652,26 @@ body.pkdrag,body.pkdrag *{-webkit-user-select:none;user-select:none;}
     <button class="btn sec" onclick="closeSheets()">Avbryt</button>
   </div></div>
 
-  <div class="sheet" id="citysheet">
+  <div class="sheet view" id="citysheet">
     <div class="grab"></div>
     <div class="media" id="cyMedia"></div>
     <div class="shpad">
-      <h3 id="cyT"></h3>
-      <p class="sm" id="cyM"></p>
+      <div class="thead">
+        <div><h3 id="cyT"></h3><p class="sm" id="cyM"></p></div>
+        <button class="editbtn vwonly" id="cyEditBtn" onclick="startEditCity()">✎ Redigera</button>
+      </div>
       <label class="fl">Väder under era dagar</label>
       <div class="wxrow" id="cyWx"></div>
       <label class="fl">Om staden</label>
       <p class="desc" id="cyD"></p>
       <div class="links" id="cyL"></div>
       <label class="fl">Mina anteckningar</label>
-      <textarea id="cyN" placeholder="Kända rätter, saker att tänka på…"></textarea>
-      <button class="btn" onclick="saveCityNote()">Spara anteckning</button>
+      <p class="desc notev vwonly" id="cyNView" style="margin-top:0"></p>
+      <div class="edonly">
+        <textarea id="cyN" placeholder="Kända rätter, saker att tänka på…"></textarea>
+        <button class="btn" onclick="saveCityNote()">Spara anteckning</button>
+        <button class="btn sec" onclick="cancelEditCity()">Avbryt</button>
+      </div>
       <label class="fl">Mina platser här</label>
       <div class="fchips" id="cyFilt"></div>
       <div id="cyPlaces"></div>
