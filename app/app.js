@@ -22,6 +22,9 @@ const S = Object.assign({ done: {}, notes: {}, places: [], times: {}, tags: {}, 
                           days: {}, citys: {}, cnotes: {}, pimg: {}, pack: null, packCats: null },
   JSON.parse(localStorage.getItem(KEY) || '{}'));
 S.contacts = S.contacts || {};
+// Engångsstädning: gamla "ej klar"-värden (false/0) från tidigare versioner hindrade automatiken.
+if (!S.mig2) { Object.keys(S.done).forEach(k => { if (!S.done[k]) delete S.done[k]; }); S.mig2 = 1; }
+if (S.auto) { Object.keys(S.auto).forEach(k => { if (S.done[k] === 1) delete S.done[k]; }); delete S.auto; }
 S.days = S.days || {}; S.citys = S.citys || {}; S.cnotes = S.cnotes || {}; S.pimg = S.pimg || {};
 const save = () => localStorage.setItem(KEY, JSON.stringify(S));
 
@@ -74,6 +77,8 @@ document.querySelectorAll('.tab').forEach(b => b.onclick = () => {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('on'));
   document.getElementById('s-' + b.dataset.s).classList.add('on');
   document.getElementById('scroll').scrollTop = 0;
+  if (b.dataset.s === 'plan' && !keepSel) goToday();   // Resplan öppnas alltid på dagens datum
+  keepSel = false;
 });
 document.querySelectorAll('#minaseg button').forEach(b => b.onclick = () => {
   document.querySelectorAll('#minaseg button').forEach(x => x.classList.toggle('on', x === b));
@@ -89,6 +94,12 @@ document.querySelectorAll('#minaseg button').forEach(b => b.onclick = () => {
 });
 
 /* ---------- Resplan ---------- */
+let keepSel = false;   // true när en annan funktion själv valt dag och sedan öppnar Resplan
+function goToday() {
+  const d = todayDay();
+  if (d == null) return;
+  sel = d; valdSjalv = false; drawChips(); drawActs();
+}
 function todayDay() {
   const iso = jp(now(), { year: 'numeric', month: '2-digit', day: '2-digit' });
   const d = DAYS.find(x => x.date === iso);
@@ -127,15 +138,15 @@ function drawActs() {
     .map(k => Object.assign({ k }, IDX[k])).sort((a, b) => mins(a.t) - mins(b.t));
   let curK = null;
   if (sel === todayDay()) { const m = mins(jp(now(), { hour: '2-digit', minute: '2-digit' })); list.forEach(a => { if (mins(a.t) <= m) curK = a.k; }); }
-  const nDone = list.filter(a => S.done[a.k]).length;
+  const nDone = list.filter(a => isDone(a.k)).length;
   document.getElementById('dayhead').innerHTML =
     `<h2>${esc(d.title)}</h2><p>Dag ${d.n} · ${d.wd} ${d.dl} · ${esc(d.city)}</p>` + (list.length ?
     `<div class="phead"><span>Dagens program</span><span>${nDone} av ${list.length} klara</span></div>
-     <div class="track" style="grid-template-columns:repeat(${list.length},1fr)">${list.map(a => `<i class="${S.done[a.k] ? 'done' : a.k === curK ? 'now' : ''}"></i>`).join('')}</div>` : '');
-  if (filt === 'todo') list = list.filter(a => !S.done[a.k]);
+     <div class="track" style="grid-template-columns:repeat(${list.length},1fr)">${list.map(a => `<i class="${isDone(a.k) ? 'done' : a.k === curK ? 'now' : ''}"></i>`).join('')}</div>` : '');
+  if (filt === 'todo') list = list.filter(a => !isDone(a.k));
   else if (filt !== 'all') list = list.filter(a => (a.g || []).includes(filt));
   document.getElementById('acts').innerHTML = list.length ? list.map(a => {
-    const dn = S.done[a.k], nt = S.notes[a.k];
+    const dn = isDone(a.k), nt = S.notes[a.k];
     const own = a.photo && PHOTOS[a.photo];
     const thumb = own ? `<img class="athumb" src="${own}" alt="">`
       : a.img ? `<img class="athumb" src="img/${a.img}.jpg" alt="">`
@@ -555,7 +566,7 @@ function openAct(k) {
   nv.textContent = nt || 'Inga anteckningar än. Tryck på Redigera för att lägga till.';
   nv.classList.toggle('hint', !nt);
   document.getElementById('sheet').classList.add('view');   // alltid visningsläge när kortet öppnas
-  document.getElementById('shSw').classList.toggle('on', !!S.done[k]);
+  document.getElementById('shSw').classList.toggle('on', isDone(k));
   document.getElementById('delBtn').style.display = a.own ? '' : 'none';
   drawMedia();
   editPhoto = null;
@@ -628,8 +639,8 @@ function togTag(k) {
   renderTagEdit();
 }
 function toggleDone() {
-  S.done[cur] = !S.done[cur]; save();
-  document.getElementById('shSw').classList.toggle('on', !!S.done[cur]);
+  S.done[cur] = !isDone(cur); save();
+  document.getElementById('shSw').classList.toggle('on', isDone(cur));
   drawActs(); drawNow();
 }
 async function saveDetail() {
@@ -1446,9 +1457,9 @@ function drawNow() {
     coverHtml({ img: ca.img, label: ci >= 0 ? 'Pågår nu' : 'Dagen börjar', title: ci >= 0 ? ca.n : d.title,
     desc: ca.d || ca.m || '', time: eff(ck), place: esc(d.city), hm, go: `openAct('d${d.n}-${ck}')`,
     dayTxt: `Dag ${pad(d.n)} / ${DAYS.length}`, dateTxt: `${d.wd} ${d.dl}` });
-  const tot0 = d.acts.length, dn0 = d.acts.filter((a, i) => S.done['d' + d.n + '-' + i]).length;
+  const tot0 = d.acts.length, dn0 = d.acts.filter((a, i) => isDone('d' + d.n + '-' + i)).length;
   h += `<div class="nowbody"><div class="phead"><span>Dagens program</span><span>${dn0} av ${tot0} klara</span></div>
-    <div class="track" style="grid-template-columns:repeat(${tot0},1fr)">${order.map(i => `<i class="${S.done['d' + d.n + '-' + i] ? 'done' : i === ci ? 'now' : ''}"></i>`).join('')}</div>`;
+    <div class="track" style="grid-template-columns:repeat(${tot0},1fr)">${order.map(i => `<i class="${isDone('d' + d.n + '-' + i) ? 'done' : i === ci ? 'now' : ''}"></i>`).join('')}</div>`;
   if (ni >= 0) {
     const a = d.acts[ni], dm = mins(eff(ni)) - m;
     h += `<div class="heading"><strong>${pre ? 'Första dagen' : 'Härnäst'}</strong><em>${pre ? d.wd + ' ' + d.dl : 'om ' + (dm >= 60 ? Math.floor(dm / 60) + ' tim' + (dm % 60 ? ' ' + pad(dm % 60) + ' min' : '') : dm + ' min')}</em></div>
@@ -1463,10 +1474,12 @@ function drawNow() {
   nb.innerHTML = h;
   wb.innerHTML = d.warn ? `<div class="warn"><div class="wi">⚠️</div><p><b>Tänk på</b>${esc(d.warn)}</p></div>` : '';
 
-  ex.innerHTML = `<section class="hotel"><div><small>${pre ? 'Hotell första natten' : 'Hotell ikväll'}</small><h3>${esc(d.hotel)}</h3></div><span>${esc(d.addr)}</span></section>`;
+  ex.innerHTML = `<section class="hotel"><div><small>${pre ? 'Hotell första natten' : 'Hotell ikväll'}</small><h3>${esc(d.hotel)}</h3></div><span>${esc(d.addr)}</span></section>
+    <p class="hint">Tiderna är uppskattade utifrån reseplanens ”förmiddag/eftermiddag”. Öppna en punkt för att ändra.</p>`;
 }
 function goPlan(n) {
   sel = n; drawChips(); drawActs();
+  keepSel = true;
   document.querySelector('.tab[data-s="plan"]').click();
 }
 
@@ -1525,12 +1538,12 @@ function backupInfo() {
 document.getElementById('simt').onchange = e => {
   if (!e.target.value) return;
   sessionStorage.setItem('simtime', new Date(e.target.value).toISOString());
-  drawNow(); drawChips();
+  drawNow(); goToday(); drawChips();
 };
 function clearSim() {
   sessionStorage.removeItem('simtime');
   document.getElementById('simt').value = '';
-  drawNow(); drawChips();
+  drawNow(); goToday(); drawChips();
 }
 
 /* ---------- Service worker ---------- */
@@ -1552,6 +1565,19 @@ if ('serviceWorker' in navigator && location.protocol !== 'file:') {
 addEventListener('online', drawBanners);
 addEventListener('offline', drawBanners);
 
+/* ---------- "Ingår" räknas som klart när tiden passerat ----------
+   Härlett från klockan (även "Testa tid"), så inget sparas på köpet.
+   Bockar användaren själv i/ur en punkt gäller det i stället. */
+function autoPassed(k) {
+  const a = IDX[k];
+  if (!a || !a.dayN || !a.date || !a.t || !(a.g || []).includes('ingar')) return false;
+  const t = now();
+  const iso = jp(t, { year: 'numeric', month: '2-digit', day: '2-digit' });
+  return a.date < iso || (a.date === iso && mins(a.t) <= mins(jp(t, { hour: '2-digit', minute: '2-digit' })));
+}
+const isDone = k => S.done[k] !== undefined ? !!S.done[k] : autoPassed(k);
+const autoRefresh = () => { drawActs(); drawNow(); backupInfo(); };
+
 /* ---------- Start ---------- */
 buildIndex();
 sel = todayDay() || DAYS[0].n;
@@ -1562,12 +1588,12 @@ loadPhotos().then(() => { drawPlaces(); drawActs(); drawNow(); backupInfo(); });
 // Vädret hämtas i bakgrunden. Tills det kommit visas normalvärdena.
 if (Date.now() - WX.at > 3 * 3600 * 1000)
   wxHamta().then(ok => { if (ok) { drawActs(); if (curCity) drawCityWx(CITIES.find(c => c.n === curCity)); } });
-setInterval(drawNow, 60000);
+setInterval(autoRefresh, 60000);
 // När appen plockas fram igen kan dygnet ha vänt — hoppa till rätt dag om
 // användaren inte själv har bläddrat någon annanstans.
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) return;
-  drawNow();
+  autoRefresh();
   const d = todayDay() || DAYS[0].n;
   if (!valdSjalv && d !== sel) { sel = d; drawChips(); drawActs(); }
 });
