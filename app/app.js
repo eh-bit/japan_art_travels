@@ -41,6 +41,17 @@ function now() {
 }
 const jp = (d, o) => new Intl.DateTimeFormat('sv-SE', Object.assign({ timeZone: TZ }, o)).format(d);
 
+/* Äldre egna platser sparade anteckningen i p.note. Nu finns den bara som S.notes[id]. */
+function migreraNoter() {
+  let andrat = false;
+  S.places.forEach(p => {
+    if (p.url && /(google\.[a-z.]+\/maps|maps\.apple\.com)/i.test(p.url)) { if (!p.mapUrl) p.mapUrl = p.url; p.url = ''; andrat = true; }
+  });
+  S.places.forEach(p => {
+    if (p.note) { if (!S.notes[p.id]) S.notes[p.id] = p.note; delete p.note; andrat = true; }
+  });
+  if (andrat) save();
+}
 /* ---------- Index över alla punkter ---------- */
 const IDX = {};
 function buildIndex() {
@@ -48,9 +59,9 @@ function buildIndex() {
   DAYS.forEach(d => d.acts.forEach((a, i) =>
     IDX['d' + d.n + '-' + i] = Object.assign({}, a, { dayN: d.n, date: d.date })));
   S.places.forEach(p => IDX[p.id] = {
-    t: p.t, n: p.name, m: p.addr || '', d: p.note || p.addr || '',
+    t: p.t, n: p.name, m: p.addr || '', d: p.addr || '',
     g: ['egen', p.cat], dayN: p.day, cityN: p.city, i: '📍', own: 1,
-    lat: p.lat, lng: p.lng, photo: p.photo, credit: p.credit,
+    lat: p.lat, lng: p.lng, photo: p.photo, credit: p.credit, mapUrl: p.mapUrl,
     L: p.url ? [['Öppna länken', p.url]] : []
   });
   Object.keys(IDX).forEach(k => {
@@ -541,7 +552,15 @@ function fyllStadsval(id, vald) {
     `<option value="${c.n}" ${c.n === vald ? 'selected' : ''}>${esc(c.name)}</option>`).join('');
 }
 ['sh', 'ad'].forEach(pre => document.querySelectorAll('#' + pre + 'WhenSeg button')
-  .forEach(b => b.onclick = () => setWhen(pre, b.dataset.w)));
+  .forEach(b => b.onclick = () => {
+    setWhen(pre, b.dataset.w);
+    if (pre !== 'sh') return;
+    // Taggen Oplanerad följer valet: "Dag och tid" tar bort den, "Bara en plats" lägger till den
+    const i = editTags.indexOf('oplanerad');
+    if (b.dataset.w === 'tid' && i >= 0) editTags.splice(i, 1);
+    if (b.dataset.w === 'plats' && i < 0) editTags.push('oplanerad');
+    renderTagEdit();
+  }));
 
 function openAct(k) {
   // Stadskortet ligger över aktivitetskortet (samma z-index, senare i DOM) — lägg undan det
@@ -561,8 +580,8 @@ function openAct(k) {
   document.getElementById('shD').textContent = a.d || a.m || 'Ingen beskrivning — lägg till en egen anteckning nedan.';
   document.getElementById('shMapBtn').innerHTML = a.lat != null
     ? `<div class="maprow">
-        <a class="maplink" href="https://maps.apple.com/?ll=${a.lat},${a.lng}&q=${encodeURIComponent(a.n)}" target="_blank" rel="noopener">Apple Kartor</a>
-        <a class="maplink" href="https://www.google.com/maps/search/?api=1&query=${a.lat},${a.lng}" target="_blank" rel="noopener">Google Maps</a>
+        <a class="maplink" href="${a.mapUrl && /maps\.apple\.com/i.test(a.mapUrl) ? a.mapUrl : `https://maps.apple.com/?ll=${a.lat},${a.lng}&q=${encodeURIComponent(a.n)}`}" target="_blank" rel="noopener">Apple Kartor</a>
+        <a class="maplink" href="${a.mapUrl && /google\.[a-z.]+\/maps/i.test(a.mapUrl) ? a.mapUrl : `https://www.google.com/maps/search/?api=1&query=${a.lat},${a.lng}`}" target="_blank" rel="noopener">Google Maps</a>
        </div>` : '';
   document.getElementById('shL').innerHTML = (a.L || []).map(([t, u]) =>
     `<a class="${/youtube/.test(u) ? 'yt' : ''}" href="${u}" target="_blank" rel="noopener">${/youtube/.test(u) ? '▶' : '↗'} ${esc(t)}</a>`).join('');
@@ -796,7 +815,7 @@ async function lookup() {
       box.innerHTML = '<p class="searching">Hittade inga koordinater i länken. Prova att söka på namnet.</p>';
       return;
     }
-    setPicked({ name: p.name, lat: p.lat, lng: p.lng, addr: '', url: p.url });
+    setPicked({ name: p.name, lat: p.lat, lng: p.lng, addr: '', url: '', mapUrl: p.url });   // kartlänken blir inte en egen länk — kortets Kartknapp används
     return;
   }
 
@@ -1054,11 +1073,13 @@ async function savePlace() {
     t: schemalagd ? document.getElementById('adTi').value : '12:00',
     day: dag,
     city: schemalagd ? 0 : +document.getElementById('adCity').value,
-    note: document.getElementById('adNo').value.trim()
+    note: ''
   };
+  const nyNote = document.getElementById('adNo').value.trim();
   if (picked) {
     p.lat = picked.lat; p.lng = picked.lng;
     p.addr = picked.addr; p.url = picked.url;
+    if (picked.mapUrl) p.mapUrl = picked.mapUrl;
     warmTiles(picked.lat, picked.lng);
   }
   if (newPhoto) {
@@ -1069,6 +1090,7 @@ async function savePlace() {
     catch (e) { delete p.photo; alert('Fotot kunde inte sparas: ' + e.message); }
   }
   S.places.push(p);
+  if (nyNote) S.notes[p.id] = nyNote;   // samma plats som "Min anteckning" på kortet
   save(); buildIndex(); closeSheets();
   drawActs(); drawPlaces(); drawCities(); backupInfo();
 }
@@ -1099,7 +1121,7 @@ function drawPlaces() {
               : (ort ? '📍 ' + esc(ort) + ' · ingen tid satt' : 'Ingen tid satt')}</div>
         </div></div>
       ${p.addr ? `<p class="pl-a">📍 ${esc(p.addr)}</p>` : ''}
-      ${p.note ? `<p class="pl-note">${esc(p.note)}</p>` : ''}
+      ${(S.notes[p.id] || '').trim() ? `<p class="pl-note">${esc(S.notes[p.id].trim())}</p>` : ''}
       <div class="tags" style="margin-top:8px">${tagHtml(a.g || ['egen', p.cat])}</div></div>`;
   }).join('') : '<div class="empty"><div class="e">🍜</div><p>Inga egna platser än.<br>Lägg till restauranger och museer<br>ni hittar på vägen.</p></div>';
 }
@@ -1504,8 +1526,7 @@ function drawNow() {
   nb.innerHTML = h;
   wb.innerHTML = d.warn ? `<div class="warn"><div class="wi">⚠️</div><p><b>Tänk på</b>${esc(d.warn)}</p></div>` : '';
 
-  ex.innerHTML = `<section class="hotel"><div><small>${pre ? 'Hotell första natten' : 'Hotell ikväll'}</small><h3>${esc(d.hotel)}</h3></div><span>${esc(d.addr)}</span></section>
-    <p class="hint">Tiderna är uppskattade utifrån reseplanens ”förmiddag/eftermiddag”. Öppna en punkt för att ändra.</p>`;
+  ex.innerHTML = `<section class="hotel"><div><small>${pre ? 'Hotell första natten' : 'Hotell ikväll'}</small><h3>${esc(d.hotel)}</h3></div><span>${esc(d.addr)}</span></section>`;
 }
 function goPlan(n) {
   sel = n; drawChips(); drawActs();
@@ -1592,7 +1613,7 @@ function importData(input) {
       const o = JSON.parse(r.result);
       if (!confirm('Ersätt anteckningar, bockar och egna platser med innehållet i filen?')) return;
       ['done', 'notes', 'places', 'times', 'tags', 'contacts', 'packCats', 'pimg'].forEach(k => { if (o[k]) S[k] = o[k]; });
-      save(); buildIndex(); drawActs(); drawPlaces(); drawNow(); drawLeaders(); backupInfo(); drawPack();
+      migreraNoter(); save(); buildIndex(); drawActs(); drawPlaces(); drawNow(); drawLeaders(); backupInfo(); drawPack();
       const n = saknadeBilder().length, bt = n === 1 ? '1 bild' : n + ' bilder';
       if (!n) { alert('Importen är klar.'); return; }
       if (!navigator.onLine) {
@@ -1655,6 +1676,22 @@ function backupInfo() {
   }
 }
 
+/* Alla kort (aktivitet, stad, ny punkt) öppnas alltid högst upp, och hoppar upp igen
+   när man går mellan visning och redigering. */
+(() => {
+  const forr = new WeakMap();
+  const obs = new MutationObserver(list => list.forEach(m => {
+    const el = m.target, st = el.classList.contains('on') + '|' + el.classList.contains('view');
+    const gammal = forr.get(el);
+    forr.set(el, st);
+    if (gammal !== undefined && gammal !== st) el.scrollTop = 0;
+  }));
+  document.querySelectorAll('.sheet').forEach(el => {
+    forr.set(el, el.classList.contains('on') + '|' + el.classList.contains('view'));
+    obs.observe(el, { attributes: true, attributeFilter: ['class'] });
+  });
+})();
+
 /* ---------- Testläge för tid ---------- */
 document.getElementById('simt').onchange = e => {
   if (!e.target.value) return;
@@ -1716,6 +1753,7 @@ const isDone = k => S.done[k] !== undefined ? !!S.done[k] : autoPassed(k);
 const autoRefresh = () => { drawActs(); drawNow(); backupInfo(); };
 
 /* ---------- Start ---------- */
+migreraNoter();
 buildIndex();
 sel = todayDay() || DAYS[0].n;
 drawChips(); drawFilters(); drawActs(); drawPlaces(); drawHotels(); drawLeaders();
