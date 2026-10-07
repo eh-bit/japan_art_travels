@@ -1529,6 +1529,7 @@ function dismiss(k) { S.dismissed[k] = 1; save(); drawBanners(); }
 
 /* ---------- Säkerhetskopia ---------- */
 function exportData() {
+  packInit();   // packlistan skapas först när fliken öppnas — se till att kategorierna alltid följer med
   const blob = new Blob([JSON.stringify(S, null, 1)], { type: 'application/json' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
@@ -1536,6 +1537,23 @@ function exportData() {
   a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 4000);
   S.lastBackup = new Date().toISOString(); save(); backupInfo();
+}
+// Städar packlistan från en backupfil: rätt form, unika id:n och 0/1 för bockar.
+function packClean(cats) {
+  const seen = new Set(), uid = (id, pre) => {
+    id = id ? String(id) : '';
+    while (!id || seen.has(id)) id = pre + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+    seen.add(id); return id;
+  };
+  return cats.filter(c => c && typeof c === 'object').map(c => ({
+    id: uid(c.id, 'c'),
+    name: String(c.name == null ? 'Kategori' : c.name),
+    collapsed: c.collapsed ? 1 : 0,
+    done: c.done ? 1 : 0,
+    items: (Array.isArray(c.items) ? c.items : [])
+      .filter(x => x && typeof x === 'object' && x.t != null)
+      .map(x => Object.assign({}, x, { id: uid(x.id, 'p'), t: String(x.t), done: x.done ? 1 : 0 }))
+  }));
 }
 function importData(input) {
   const f = input.files[0]; if (!f) return;
@@ -1547,6 +1565,7 @@ function importData(input) {
       // cnotes = stadsanteckningar, days/citys = flyttade punkter. Fanns inte med tidigare vid import.
       ['done', 'notes', 'cnotes', 'places', 'times', 'tags', 'days', 'citys', 'contacts', 'packCats'].forEach(k => { if (o[k]) S[k] = o[k]; });
       S.cnotes = S.cnotes || {}; S.days = S.days || {}; S.citys = S.citys || {};
+      if (Array.isArray(o.packCats)) S.packCats = packClean(o.packCats);
       // Packlistan: ny kategoriform (packCats) används direkt. Äldre backuper har en platt lista (pack)
       // som packInit() flyttar över till en kategori.
       if (!Array.isArray(o.packCats) && Array.isArray(o.pack)) { S.packCats = null; S.pack = o.pack; }

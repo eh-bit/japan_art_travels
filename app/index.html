@@ -712,6 +712,12 @@ input[type=date]::-webkit-calendar-picker-indicator,input[type=time]::-webkit-ca
 .pkaddrow button:hover,.pkadd button:hover{border-color:var(--primary)}
 .pkaddrow button:active,.pkadd button:active{background:var(--primary);color:var(--paper);border-color:var(--primary);transform:scale(.94)}
 .pkaddrow input:focus,.pkadd input:focus{outline:0;border-bottom-color:var(--primary)}
+/* iPhone: appen ska fylla hela skärmen ända ner under hemindikatorn (inget glapp under flikraden) */
+html,body{min-height:100vh;min-height:-webkit-fill-available;min-height:100lvh}
+.app{top:0;left:0;right:0;bottom:0;height:100vh;height:100lvh}
+@supports (-webkit-touch-callout:none){.app{height:100lvh}}
+/* säkerhetsnät: om något ändå lämnar ett glapp fylls det med flikradens bakgrund */
+.tabs:after{content:"";position:absolute;left:0;right:0;top:100%;height:120px;background:var(--card);pointer-events:none}
 </style>
 </head>
 <body>
