@@ -515,7 +515,7 @@ label.fl,.editrow .el{font-size:9px;letter-spacing:.16em;color:var(--ink-soft)}
 .backbtn{font:9px Arial,sans-serif;letter-spacing:.16em;text-transform:uppercase;font-weight:700;color:var(--ink-soft);margin-bottom:10px}
 .backbtn svg{stroke:var(--accent)}
 .addbtn{display:block;width:auto;margin:16px auto 23px;padding:6px}
-.pkadd button,.pkaddrow button,.srow button,.editbtn,.mtoggle,.mtoggle button,.fch.on,.sw,.sw i,.tick,.rdot,.smk,.num,.satt{border-radius:0}
+.pkadd button,.pkaddrow button,.srow button,.editbtn,.sw,.sw i,.tick,.rdot,.smk,.num,.satt{border-radius:0}
 .sw,.sw i,.tick,.rdot,.smk,.city .num{border-radius:50%}
 .tick{border-radius:50%}
 .pkadd button,.pkaddrow button,.srow button{background:var(--primary);color:#fff}
@@ -626,6 +626,73 @@ textarea,input[type=text],input[type=tel]{font-family:var(--serif)}
 .pkadd{margin-top:14px;gap:8px}
 .pkbody:empty:before{padding:6px 10px 8px}
 .pkph{border-radius:0}
+/* ---- Aktivitets- och stadskort enligt nya mallarna ---- */
+#sheet .media{height:390px;margin-top:-14px;background:var(--primary)}
+#sheet .media.mapmode{height:210px}
+#citysheet .media{height:315px;margin:8px 10px 0;background:var(--primary)}
+#citysheet .media.mapmode{height:210px}
+.media .noimg{background:linear-gradient(145deg,#62651e,#49351d)}
+.media>img{object-position:center top}
+.media .smap{height:100%}
+.hov{position:absolute;color:#fff}
+.hshade{position:absolute;inset:0;pointer-events:none;background:linear-gradient(180deg,rgba(24,20,14,.02) 34%,rgba(24,20,14,.18) 56%,rgba(24,20,14,.88) 100%)}
+#citysheet .hshade{background:linear-gradient(180deg,rgba(26,21,15,.04) 35%,rgba(26,21,15,.8) 100%)}
+.media.mapmode .hov{display:none}
+.htop{top:0;left:0;right:0;padding:24px 18px;display:flex;justify-content:space-between;font:8px Arial,sans-serif;letter-spacing:.16em;text-transform:uppercase;text-shadow:0 1px 7px rgba(0,0,0,.45);pointer-events:none}
+.hcopy{left:18px;right:18px;bottom:19px;pointer-events:none}
+.htype{display:flex;align-items:center;gap:8px;font:8px Arial,sans-serif;letter-spacing:.17em;text-transform:uppercase;color:#ead6bd}
+#sheet .htype:before{content:"";width:22px;height:2px;background:var(--accent)}
+.hcopy h1{font:400 35px/.97 var(--serif);letter-spacing:-.03em;margin:11px 0 8px;color:#fff}
+.hmeta{display:flex;justify-content:space-between;align-items:flex-end}
+.hmeta p,#citysheet .hcopy p{font:italic 11px var(--serif);color:#eee4d7;margin:0}
+#citysheet .hcopy h2{font:400 36px/.96 var(--serif);margin:8px 0 6px;color:#fff;letter-spacing:-.03em}
+.mtoggle{top:62px;right:13px;left:auto;bottom:auto;transform:none;background:rgba(251,248,241,.92);border-radius:999px;padding:3px;box-shadow:none}
+#citysheet .mtoggle{top:12px;right:12px}
+.mtoggle button{border-radius:999px;font:700 7px Arial,sans-serif;letter-spacing:.08em;text-transform:uppercase;padding:7px 10px;color:var(--ink-soft)}
+.mtoggle button.on{background:var(--primary);color:#fff}
+/* rubrik + redigera */
+.sheet .thead{margin-top:20px}.sheet h3{margin-top:0}
+#sheet h3{font-size:25px;line-height:1}#citysheet h3{font-size:28px;line-height:1}
+.sheet .sm{font:italic 11px var(--serif);margin-top:7px}
+.editbtn{margin-top:0}
+#shEditBtn{border:0;background:none;padding:4px;color:var(--primary)}
+#cyEditBtn{padding:8px 10px}
+.desc{font:14px/1.55 var(--serif);color:#393126;margin:20px 0}
+#citysheet .desc{margin:0}
+.maprow{gap:8px;margin-top:0}
+.maplink{border:1px solid var(--border);background:transparent;padding:11px 8px;font:700 9px Arial,sans-serif;color:var(--primary);border-radius:0}
+#shL{margin-top:9px;gap:7px}
+.links a{font:700 8px Arial,sans-serif;padding:8px 10px;border-radius:999px;background:#e9e8cf;color:#66702e}
+.links a.yt{background:#f1dfd2;color:#ad4d47}
+#citysheet .links a{background:#eee5c8;color:#66591f;margin-top:0}
+#sheet .toggle{margin-top:21px;padding:14px 0;border:0;border-top:1px solid var(--border);border-bottom:1px solid var(--border);background:none;border-radius:0}
+.toggle span{font:400 17px var(--serif)}
+.sw{width:43px;height:24px}.sw i{width:18px;height:18px;top:3px;left:3px}.sw.on i{left:22px}
+#sheet label.fl,#citysheet label.fl{margin:22px 0 9px;font:700 8px Arial,sans-serif;letter-spacing:.18em;color:var(--ink-soft)}
+#citysheet label.fl{color:var(--sage)}
+#citysheet .thead+label.fl{color:var(--ink-soft);margin-top:20px}
+.notev{font:italic 12px/1.5 var(--serif);color:#928878}
+.desc.hint,.notev.hint{font:italic 12px/1.5 var(--serif);color:#928878;margin:9px 0 0}
+#sheet .btn.sec,#citysheet .btn.sec{margin-top:8px}
+.btn{font-size:9px;letter-spacing:.17em;padding:14px}
+/* stadsväder */
+.wxrow{gap:7px}
+.wxd{width:76px;padding:8px 9px;text-align:left;display:grid;grid-template-columns:1fr auto;grid-template-areas:"dd dd" "tt ii" "nn nn" "src src";
+  border:1px solid #d9d5cd;border-radius:14px;background:rgba(231,236,233,.7)}
+.wxd .dd{grid-area:dd;font:400 12px var(--serif);letter-spacing:0;text-transform:none;color:var(--ink)}
+.wxd .tt{grid-area:tt;font:400 18px var(--serif);margin-top:6px;align-self:end}
+.wxd .ii{grid-area:ii;font-size:12px;margin:6px 0 0;align-self:end}
+.wxd .nn{grid-area:nn;font-size:10px;margin-top:2px}
+.wxd:after{grid-area:src;display:flex;align-items:center;gap:4px;margin-top:5px;content:"Normalt";font:6px Arial,sans-serif;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-soft)}
+.wxd.prognos:after{content:"Prognos"}
+.wxd.prognos{background:rgba(231,236,233,.7);border-color:#d9d5cd}
+/* redigeringsläge */
+#sheet:not(.view) .shpad,#citysheet:not(.view) .shpad{padding-top:2px}
+.photorow .pbtn{font:700 9px Arial,sans-serif;letter-spacing:.06em;border-radius:0;color:var(--primary)}
+.tgedit .tg{padding:6px 9px}
+.editrow .el{font:700 8px Arial,sans-serif}
+input,select,textarea,input[type=date],input[type=time]{font-family:var(--serif)}
+::placeholder{font-family:var(--serif);font-style:italic}
 </style>
 </head>
 <body>
@@ -765,7 +832,7 @@ textarea,input[type=text],input[type=tel]{font-family:var(--serif)}
     <div class="shpad">
       <div class="thead">
         <div><h3 id="shT"></h3><p class="sm" id="shM"></p></div>
-        <button class="editbtn vwonly" id="shEditBtn" onclick="startEditAct()">✎ Redigera</button>
+        <button class="editbtn vwonly" id="shEditBtn" onclick="startEditAct()">Redigera</button>
       </div>
       <div class="tags vwonly" id="shTagsView"></div>
       <div class="edonly">
@@ -858,7 +925,7 @@ textarea,input[type=text],input[type=tel]{font-family:var(--serif)}
     <div class="shpad">
       <div class="thead">
         <div><h3 id="cyT"></h3><p class="sm" id="cyM"></p></div>
-        <button class="editbtn vwonly" id="cyEditBtn" onclick="startEditCity()">✎ Redigera</button>
+        <button class="editbtn vwonly" id="cyEditBtn" onclick="startEditCity()">Redigera</button>
       </div>
       <label class="fl">Väder under era dagar</label>
       <div class="wxrow" id="cyWx"></div>

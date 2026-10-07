@@ -418,10 +418,16 @@ function setCityMedia(m) { cyMedia = m; drawCityMedia(); }
 const CYZ = 12, CYW = 560, CYH = 210;
 function drawCityMedia() {
   const c = CITIES.find(x => x.n === curCity), el = document.getElementById('cyMedia');
-  const inner = cyMedia === 'karta'
+  const kart = cyMedia === 'karta';
+  const inner = kart
     ? tileMap(c.lat, c.lng, CYZ, CYW, CYH, false)
     : `<img src="img/${c.img}.jpg" alt="">`;
-  el.innerHTML = inner + `<div class="mtoggle">
+  const nat = c.d2 - c.d1 + 1;
+  el.classList.toggle('mapmode', kart);
+  el.innerHTML = inner + `<div class="hshade hov"></div>
+    <div class="hcopy hov"><div class="htype">Plats ${pad(c.n)} · ${cityDagar(c)}</div><h2>${esc(c.name)}</h2>
+    <p>${esc(c.dl)} · ${nat} ${nat === 1 ? 'dag' : 'dagar'}</p></div>
+    <div class="mtoggle">
     <button class="${cyMedia === 'bild' ? 'on' : ''}" onclick="setCityMedia('bild')">Bild</button>
     <button class="${cyMedia === 'karta' ? 'on' : ''}" onclick="setCityMedia('karta')">Karta</button></div>`;
 }
@@ -591,16 +597,20 @@ function drawMedia() {
   const hasImg = !!a.img || !!own, hasMap = a.lat != null;
   const pic = own ? `<img src="${own}" alt="">${a.credit ? `<div class="satt" style="left:4px;right:auto;max-width:70%">${esc(a.credit)}</div>` : ''}`
     : (a.img ? `<img src="img/${a.img}.jpg" alt="">` : `<div class="noimg">${a.i || '📍'}</div>`);
-  let inner = (mediaMode === 'karta' && hasMap)
-    ? tileMap(a.lat, a.lng, 15, el.clientWidth || 390, 210, !!a.own)
-    : pic;
+  const kart = hasMap && (mediaMode === 'karta' || !hasImg);
+  let inner = kart ? tileMap(a.lat, a.lng, 15, el.clientWidth || 390, 210, !!a.own) : pic;
+  el.classList.toggle('mapmode', kart);
+  const d = DAYS.find(x => x.n === a.dayN);
+  const typ = (a.g || []).map(k => TAG[k] && TAG[k].l).filter(Boolean).slice(0, 2).join(' · ');
+  inner += `<div class="hshade hov"></div>
+    <div class="htop hov"><span>Japansk tid · ${jp(now(), { hour: '2-digit', minute: '2-digit' })}</span><span>${a.dayN ? 'Dag ' + a.dayN + ' / ' + DAYS.length : 'Oplanerad'}</span></div>
+    <div class="hcopy hov"><div class="htype">${esc(typ || 'Punkt')}</div><h1>${esc(a.n)}</h1>
+    <div class="hmeta"><p>${d ? d.wd + ' ' + d.dl : esc(a.m || '')}</p><p>${a.dayN ? a.t : ''}</p></div></div>`;
   if (hasMap && hasImg) inner += `<div class="mtoggle">
     <button class="${mediaMode === 'bild' ? 'on' : ''}" onclick="setMedia('bild')">Bild</button>
     <button class="${mediaMode === 'karta' ? 'on' : ''}" onclick="setMedia('karta')">Karta</button></div>`;
-  else if (hasMap && !hasImg) { inner = tileMap(a.lat, a.lng, 15, el.clientWidth || 390, 210, !!a.own); }
   el.innerHTML = inner;
 }
-/* Kartrutor: programmets platser ligger lokalt, egna hämtas och cachas vid behov. */
 const tileUrl = (z, x, y, remote) => remote
   ? `https://tile.openstreetmap.org/${z}/${x}/${y}.png`
   : `tiles/${z}/${x}/${y}.png`;
