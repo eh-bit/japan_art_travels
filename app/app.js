@@ -4,7 +4,7 @@ const TAG = {
   ingar:     { l: 'Ingår',      c: '#526050', b: '#dfe7d8' },
   transport: { l: 'Transport',  c: '#3e5a60', b: '#dae6e9' },
   aktivitet: { l: 'Aktivitet',  c: '#526050', b: '#dfe7d8' },
-  mat:       { l: 'Restaurang', c: '#8c4e2e', b: '#f1dfd2' },
+  mat:       { l: 'Mat',        c: '#8c4e2e', b: '#f1dfd2' },
   shopping:  { l: 'Shopping',   c: '#695184', b: '#e8deef' },
   bokad:     { l: 'Bokad',      c: '#6e5b20', b: '#eee0ab' },
   fri:       { l: 'Fri tid',    c: '#746b5c', b: '#ebe5d8' },
@@ -81,6 +81,19 @@ const tagHtml = g => (g || []).map(k => {
   const t = TAG[k];
   return t ? `<span class="tg" style="color:${t.c};background:${t.b}">${t.l}</span>` : '';
 }).join('');
+
+/* Filtergrupper för egna platser. Medlemskap följer taggarna (IDX[id].g), så ändrade taggar slår igenom direkt.
+   Oplanerad är härledd: en punkt utan dag räknas dit. */
+const GROUPS = ['oplanerad', 'mat', 'aktivitet', 'shopping', 'ovrigt'];
+const inGroup = (p, k) => {
+  const a = IDX[p.id] || {};
+  return k === 'oplanerad' ? !a.dayN : (a.g || ['egen', p.cat]).includes(k);
+};
+const groupChips = (cur, fn, places) =>
+  [['alla', 'Alla']].concat(GROUPS.map(k => [k, TAG[k].l])).map(([k, l]) => {
+    const n = k === 'alla' ? places.length : places.filter(p => inGroup(p, k)).length;
+    return `<button class="fch ${cur === k ? 'on' : ''}" onclick="${fn}('${k}')">${l} ${n}</button>`;
+  }).join('');
 
 /* ---------- Navigering ---------- */
 document.querySelectorAll('.tab').forEach(b => b.onclick = () => {
@@ -458,14 +471,8 @@ function drawCityPlaces() {
     const a = IDX[p.id] || {};
     return p.city === curCity || (a.dayN && cityOfDay(a.dayN).some(c => c.n === curCity));
   });
-  const planerad = p => !!(IDX[p.id] || {}).dayN;
-  const antal = { alla: egna.length, planerat: egna.filter(planerad).length };
-  antal.oplanerat = egna.length - antal.planerat;
-  document.getElementById('cyFilt').innerHTML =
-    [['alla', 'Alla'], ['planerat', 'Planerat'], ['oplanerat', 'Oplanerat']].map(([k, l]) =>
-      `<button class="fch ${cyFilt === k ? 'on' : ''}" onclick="setCyFilt('${k}')">${l} ${antal[k]}</button>`).join('');
-  const lista = egna.filter(p => cyFilt === 'alla' ||
-    (cyFilt === 'planerat' ? planerad(p) : !planerad(p)));
+  document.getElementById('cyFilt').innerHTML = groupChips(cyFilt, 'setCyFilt', egna);
+  const lista = egna.filter(p => cyFilt === 'alla' || inGroup(p, cyFilt));
   const ic = { mat: '🍜', aktivitet: '🖼️', shopping: '🛍️', ovrigt: '📍' };
   document.getElementById('cyPlaces').innerHTML = lista.length ? lista.map(p => {
     const a = IDX[p.id] || {}, d = DAYS.find(x => x.n === a.dayN);
@@ -474,7 +481,7 @@ function drawCityPlaces() {
         : `<div class="ico">${ic[p.cat] || '📍'}</div>`}
       <div class="mb"><div class="mn">${esc(p.name)}</div>
       <div class="mm">${d ? 'Dag ' + d.n + ' · ' + a.t : 'Ingen tid satt'}</div></div>
-      <span class="tg" style="color:${d ? TAG[p.cat].c : TAG.oplanerad.c};background:${d ? TAG[p.cat].b : TAG.oplanerad.b}">${d ? TAG[p.cat].l : 'Oplanerad'}</span></div>`;
+      <div class="tags" style="margin-top:0">${tagHtml((a.g || [p.cat]).filter(k => k !== 'egen'))}</div></div>`;
   }).join('') : `<p class="hint">Inget här än${cyFilt !== 'alla' ? ' under det filtret' : ''}.</p>`;
 }
 // Stadskortet öppnas i visningsläge. Anteckningen går bara att ändra efter tryck på Redigera.
@@ -1097,16 +1104,8 @@ async function savePlace() {
 function setCat(c) { cat = c; drawPlaces(); }
 function drawPlaces() {
   const ic = { mat: '🍜', aktivitet: '🖼️', shopping: '🛍️', ovrigt: '📍' };
-  const oplanerad = p => !(IDX[p.id] || {}).dayN;
-  const antal = k => k === 'alla' ? S.places.length
-    : k === 'oplanerad' ? S.places.filter(oplanerad).length
-    : S.places.filter(p => p.cat === k).length;
-  document.getElementById('catseg2').innerHTML =
-    [['alla', 'Alla'], ['oplanerad', 'Oplanerad'], ['mat', 'Mat'],
-     ['aktivitet', 'Museum'], ['shopping', 'Shopping']].map(([k, l]) =>
-      `<button class="fch ${cat === k ? 'on' : ''}" onclick="setCat('${k}')">${l} ${antal(k)}</button>`).join('');
-  const l = S.places.filter(p => cat === 'alla' ? true
-    : cat === 'oplanerad' ? oplanerad(p) : p.cat === cat);
+  document.getElementById('catseg2').innerHTML = groupChips(cat, 'setCat', S.places);
+  const l = S.places.filter(p => cat === 'alla' || inGroup(p, cat));
   document.getElementById('places').innerHTML = l.length ? l.map(p => {
     const a = IDX[p.id] || {}, d = DAYS.find(x => x.n === a.dayN);
     const ort = !d && p.city ? (CITIES.find(c => c.n === p.city) || {}).name : null;
