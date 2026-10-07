@@ -701,23 +701,6 @@ input[type=date]::-webkit-date-and-time-value,input[type=time]::-webkit-date-and
 input[type=date]::-webkit-datetime-edit,input[type=time]::-webkit-datetime-edit{display:flex;align-items:center;height:44px;line-height:44px;padding:0}
 input[type=date]::-webkit-datetime-edit-fields-wrapper,input[type=time]::-webkit-datetime-edit-fields-wrapper{display:flex;align-items:center;padding:0}
 input[type=date]::-webkit-calendar-picker-indicator,input[type=time]::-webkit-calendar-picker-indicator{margin:0 0 0 auto}
-/* packlista: mjukare, linjerad "+"-knapp som sitter ihop med inmatningsraden */
-.pkaddrow,.pkadd{align-items:flex-end}
-.pkaddrow button,.pkadd button{
-  width:32px;height:32px;flex:0 0 32px;padding:0;margin:0 0 3px;
-  display:inline-flex;align-items:center;justify-content:center;
-  border:1px solid rgba(73,53,29,.35);border-radius:50%;background:transparent;color:var(--primary);
-  font:300 20px/1 var(--serif);cursor:pointer;
-  transition:background .15s,color .15s,border-color .15s,transform .1s}
-.pkaddrow button:hover,.pkadd button:hover{border-color:var(--primary)}
-.pkaddrow button:active,.pkadd button:active{background:var(--primary);color:var(--paper);border-color:var(--primary);transform:scale(.94)}
-.pkaddrow input:focus,.pkadd input:focus{outline:0;border-bottom-color:var(--primary)}
-/* iPhone: appen ska fylla hela skärmen ända ner under hemindikatorn (inget glapp under flikraden) */
-html,body{min-height:100vh;min-height:-webkit-fill-available;min-height:100lvh}
-.app{top:0;left:0;right:0;bottom:0;height:100vh;height:100lvh}
-@supports (-webkit-touch-callout:none){.app{height:100lvh}}
-/* säkerhetsnät: om något ändå lämnar ett glapp fylls det med flikradens bakgrund */
-.tabs:after{content:"";position:absolute;left:0;right:0;top:100%;height:120px;background:var(--card);pointer-events:none}
 </style>
 </head>
 <body>
@@ -826,6 +809,7 @@ html,body{min-height:100vh;min-height:-webkit-fill-available;min-height:100lvh}
           <button class="btn" onclick="exportData()">Exportera till fil</button>
           <button class="btn sec" onclick="document.getElementById('impf').click()">Importera från fil</button>
           <input type="file" id="impf" accept="application/json" style="display:none" onchange="importData(this)">
+          <button class="btn sec" id="imgbtn" onclick="hamtaBilder()" style="display:none">Hämta bilder</button>
           <p class="hint" id="bkinfo"></p>
         </div>
 

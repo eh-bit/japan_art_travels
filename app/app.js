@@ -662,11 +662,11 @@ async function saveDetail() {
       if (editPhoto.blob) {
         const id = 'ph' + Date.now();
         await photoPut(id, editPhoto.blob);
-        if (p) { p.photo = id; p.credit = editPhoto.credit; }
-        else S.pimg[cur] = { id, credit: editPhoto.credit };
+        if (p) { p.photo = id; p.credit = editPhoto.credit; if (editPhoto.src) p.psrc = editPhoto.src; else delete p.psrc; }
+        else S.pimg[cur] = { id, credit: editPhoto.credit, src: editPhoto.src };
         if (old) photoDel(old);
       } else if (editPhoto.remove) {
-        if (p) { delete p.photo; delete p.credit; } else delete S.pimg[cur];
+        if (p) { delete p.photo; delete p.credit; delete p.psrc; } else delete S.pimg[cur];
         if (old) photoDel(old);
       }
     } catch (e) { alert('Fotot kunde inte sparas: ' + e.message); }
@@ -1015,7 +1015,7 @@ async function useSuggestion(i, el, pre = 'ad') {
     const url = ii.thumburl || ii.url;
     if (!url) throw new Error('ingen bildadress');
     const blob = await (await fetch(url)).blob();
-    const ph = { blob: await shrink(blob), credit: s.credit };
+    const ph = { blob: await shrink(blob), credit: s.credit, src: { url, title: s.title } };
     phSet(pre, ph);
     drawPhotoPrev(pre);
     document.getElementById(pre + 'Sug').innerHTML = '';
@@ -1064,6 +1064,7 @@ async function savePlace() {
   if (newPhoto) {
     p.photo = 'ph' + Date.now();
     p.credit = newPhoto.credit;
+    if (newPhoto.src) p.psrc = newPhoto.src;
     try { await photoPut(p.photo, newPhoto.blob); }
     catch (e) { delete p.photo; alert('Fotot kunde inte sparas: ' + e.message); }
   }
@@ -1529,7 +1530,6 @@ function dismiss(k) { S.dismissed[k] = 1; save(); drawBanners(); }
 
 /* ---------- Säkerhetskopia ---------- */
 function exportData() {
-  packInit();   // packlistan skapas först när fliken öppnas — se till att kategorierna alltid följer med
   const blob = new Blob([JSON.stringify(S, null, 1)], { type: 'application/json' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
@@ -1538,54 +1538,121 @@ function exportData() {
   setTimeout(() => URL.revokeObjectURL(a.href), 4000);
   S.lastBackup = new Date().toISOString(); save(); backupInfo();
 }
-// Städar packlistan från en backupfil: rätt form, unika id:n och 0/1 för bockar.
-function packClean(cats) {
-  const seen = new Set(), uid = (id, pre) => {
-    id = id ? String(id) : '';
-    while (!id || seen.has(id)) id = pre + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
-    seen.add(id); return id;
-  };
-  return cats.filter(c => c && typeof c === 'object').map(c => ({
-    id: uid(c.id, 'c'),
-    name: String(c.name == null ? 'Kategori' : c.name),
-    collapsed: c.collapsed ? 1 : 0,
-    done: c.done ? 1 : 0,
-    items: (Array.isArray(c.items) ? c.items : [])
-      .filter(x => x && typeof x === 'object' && x.t != null)
-      .map(x => Object.assign({}, x, { id: uid(x.id, 'p'), t: String(x.t), done: x.done ? 1 : 0 }))
-  }));
+/* Bilder från Wikimedia Commons sparas som adress i säkerhetskopian (p.psrc / S.pimg[..].src).
+   Vid import, eller med knappen "Hämta bilder", hämtas de hem igen när det finns nät.
+   Egna foton från telefonen har ingen adress och kan inte följa med. */
+function saknadeBilder() {
+  const out = [];
+  S.places.forEach(p => { if (p.photo && p.psrc && !PHOTOS[p.photo]) out.push({ id: p.photo, src: p.psrc }); });
+  Object.keys(S.pimg || {}).forEach(k => { const v = S.pimg[k]; if (v && v.id && v.src && !PHOTOS[v.id]) out.push({ id: v.id, src: v.src }); });
+  return out;
+}
+let bildLaddar = false;
+async function hamtaBilder() {
+  if (bildLaddar) return;
+  const lista = saknadeBilder();
+  if (!lista.length) { backupInfo(); return; }
+  if (!navigator.onLine) { alert('Du verkar vara offline. Försök igen när du har nät.'); return; }
+  bildLaddar = true;
+  const btn = document.getElementById('imgbtn');
+  btn.disabled = true;
+  let ok = 0, fel = 0;
+  for (let n = 0; n < lista.length; n++) {
+    btn.textContent = `Hämtar bilder… ${n + 1}/${lista.length}`;
+    const x = lista[n];
+    try {
+      let blob;
+      try {
+        const r = await fetch(x.src.url);
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        blob = await r.blob();
+      } catch (e) {
+        if (!x.src.title) throw e;
+        // Adressen kan ha ändrats — slå upp bilden på titeln igen
+        const q = 'https://commons.wikimedia.org/w/api.php?action=query&format=json&origin=*' +
+          '&prop=imageinfo&iiprop=url&iiurlwidth=900&titles=' + encodeURIComponent(x.src.title);
+        const d = await (await fetch(q)).json();
+        const ii = (Object.values(d.query.pages)[0].imageinfo || [{}])[0];
+        blob = await (await fetch(ii.thumburl || ii.url)).blob();
+      }
+      await photoPut(x.id, await shrink(blob));
+      ok++;
+    } catch (e) { fel++; }
+  }
+  bildLaddar = false;
+  btn.disabled = false;
+  drawPlaces(); drawActs(); drawNow(); backupInfo();
+  alert(fel ? `${ok} av ${ok + fel} bilder hämtade, ${fel} misslyckades. Försök igen med knappen "Hämta bilder".` : (ok === 1 ? '1 bild hämtad.' : `${ok} bilder hämtade.`));
 }
 function importData(input) {
   const f = input.files[0]; if (!f) return;
   const r = new FileReader();
-  r.onload = () => {
+  r.onload = async () => {
     try {
       const o = JSON.parse(r.result);
       if (!confirm('Ersätt anteckningar, bockar och egna platser med innehållet i filen?')) return;
-      // cnotes = stadsanteckningar, days/citys = flyttade punkter. Fanns inte med tidigare vid import.
-      ['done', 'notes', 'cnotes', 'places', 'times', 'tags', 'days', 'citys', 'contacts', 'packCats'].forEach(k => { if (o[k]) S[k] = o[k]; });
-      S.cnotes = S.cnotes || {}; S.days = S.days || {}; S.citys = S.citys || {};
-      if (Array.isArray(o.packCats)) S.packCats = packClean(o.packCats);
-      // Packlistan: ny kategoriform (packCats) används direkt. Äldre backuper har en platt lista (pack)
-      // som packInit() flyttar över till en kategori.
-      if (!Array.isArray(o.packCats) && Array.isArray(o.pack)) { S.packCats = null; S.pack = o.pack; }
-      save(); buildIndex(); drawActs(); drawPlaces(); drawNow(); drawLeaders(); backupInfo(); drawPack(); drawCities();
-      alert('Importen är klar.');
+      ['done', 'notes', 'places', 'times', 'tags', 'contacts', 'packCats', 'pimg'].forEach(k => { if (o[k]) S[k] = o[k]; });
+      save(); buildIndex(); drawActs(); drawPlaces(); drawNow(); drawLeaders(); backupInfo(); drawPack();
+      const n = saknadeBilder().length, bt = n === 1 ? '1 bild' : n + ' bilder';
+      if (!n) { alert('Importen är klar.'); return; }
+      if (!navigator.onLine) {
+        alert(`Importen är klar. Filen har ${bt} som kan hämtas från nätet — du är offline just nu. Tryck på "Hämta bilder" under Mina → Viktig info när du har nät.`);
+      } else if (confirm(`Importen är klar. Filen har ${bt} som kan hämtas från nätet. Vill du hämta ${n === 1 ? 'den' : 'dem'} nu?\n\n(Du kan också göra det senare med knappen "Hämta bilder".)`)) {
+        await hamtaBilder();
+      }
     } catch (e) { alert('Kunde inte läsa filen: ' + e.message); }
   };
   r.readAsText(f);
   input.value = '';
 }
+/* Foton som valdes innan bildadresser sparades saknar adress. De kommer från Wikimedia Commons
+   (se credit), så adressen kan återskapas: sök bilder nära platsen och matcha på credit-texten. */
+async function reparaBildkallor() {
+  if (!navigator.onLine) return 0;
+  const kand = [];
+  S.places.forEach(p => { if (p.photo && !p.psrc && p.credit && p.lat != null) kand.push({ lat: p.lat, lng: p.lng, credit: p.credit, set: s => { p.psrc = s; } }); });
+  Object.keys(S.pimg || {}).forEach(k => {
+    const v = S.pimg[k], a = IDX[k];
+    if (v && v.id && !v.src && v.credit && a && a.lat != null) kand.push({ lat: a.lat, lng: a.lng, credit: v.credit, set: s => { v.src = s; } });
+  });
+  let fixat = 0;
+  for (const c of kand.slice(0, 40)) {
+    try {
+      for (const radie of [400, 1000]) {
+        const u = 'https://commons.wikimedia.org/w/api.php?action=query&format=json&origin=*' +
+          `&generator=geosearch&ggsnamespace=6&ggslimit=${radie === 400 ? 10 : 30}&ggsradius=${radie}` +
+          `&ggscoord=${c.lat}|${c.lng}&prop=imageinfo&iiprop=url|extmetadata&iiurlwidth=900`;
+        const d = await (await fetch(u)).json();
+        const strip = s => String(s || '').replace(/<[^>]+>/g, '').trim();
+        const hit = Object.values((d.query || {}).pages || {}).find(p => {
+          const ii = (p.imageinfo || [{}])[0], m = ii.extmetadata || {};
+          return (strip(m.Artist && m.Artist.value) || 'Wikimedia Commons') + ' · ' +
+                 (strip(m.LicenseShortName && m.LicenseShortName.value) || 'se Commons') === c.credit;
+        });
+        if (hit) { const ii = hit.imageinfo[0]; c.set({ url: ii.thumburl || ii.url, title: hit.title }); fixat++; break; }
+      }
+    } catch (e) { /* ingen nät eller blockerat — försök igen nästa gång */ }
+  }
+  if (fixat) { save(); backupInfo(); }
+  return fixat;
+}
 function backupInfo() {
-  const n = S.places.length, notes = Object.keys(S.notes).filter(k => S.notes[k]).length + Object.keys(S.cnotes).filter(k => S.cnotes[k]).length;
+  const n = S.places.length, notes = Object.keys(S.notes).filter(k => S.notes[k]).length;
   const done = Object.keys(S.done).filter(k => S.done[k]).length;
   const num = Object.keys(S.contacts).length;
-  const pk = Array.isArray(S.packCats) ? S.packCats.flatMap(c => c.items) : [];
-  const ph = S.places.filter(p => p.photo).length;
+  const fotos = [...S.places.filter(p => p.photo), ...Object.values(S.pimg || {}).filter(v => v && v.id)];
+  const lank = fotos.filter(v => v.psrc || v.src).length, egna = fotos.length - lank;
+  const saknas = saknadeBilder().length;
   document.getElementById('bkinfo').textContent =
-    `${notes} anteckningar · ${done} avbockade · ${pk.length} packlisteposter · ${n} egna platser · ${num} sparade nummer` +
-    (ph ? ` · ${ph} foton (ingår ej i exporten)` : '') +
+    `${notes} anteckningar · ${done} avbockade · ${n} egna platser · ${num} sparade nummer` +
+    (lank ? ` · ${lank} bilder sparas som länkar i filen` : '') +
+    (egna ? ` · ${egna} egna foton ingår ej i exporten` : '') +
     (S.lastBackup ? ` · senast exporterad ${S.lastBackup.slice(0, 10)}` : '');
+  const b = document.getElementById('imgbtn');
+  if (b && !bildLaddar) {
+    b.style.display = saknas ? '' : 'none';
+    b.textContent = `Hämta bilder (${saknas})`;
+  }
 }
 
 /* ---------- Testläge för tid ---------- */
@@ -1654,7 +1721,7 @@ sel = todayDay() || DAYS[0].n;
 drawChips(); drawFilters(); drawActs(); drawPlaces(); drawHotels(); drawLeaders();
 drawRoute(); drawCities();
 drawNow(); drawBanners(); backupInfo();
-loadPhotos().then(() => { drawPlaces(); drawActs(); drawNow(); backupInfo(); });
+loadPhotos().then(() => { drawPlaces(); drawActs(); drawNow(); backupInfo(); reparaBildkallor(); });
 // Vädret hämtas i bakgrunden. Tills det kommit visas normalvärdena.
 if (Date.now() - WX.at > 3 * 3600 * 1000)
   wxHamta().then(ok => { if (ok) { drawActs(); if (curCity) drawCityWx(CITIES.find(c => c.n === curCity)); } });
