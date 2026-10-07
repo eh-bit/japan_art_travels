@@ -693,6 +693,14 @@ textarea,input[type=text],input[type=tel]{font-family:var(--serif)}
 .editrow .el{font:700 8px Arial,sans-serif}
 input,select,textarea,input[type=date],input[type=time]{font-family:var(--serif)}
 ::placeholder{font-family:var(--serif);font-style:italic}
+/* iOS Safari: datum/tid-text ska ligga mitt i rutan (annars hamnar den överst) */
+input[type=date],input[type=time]{height:46px;min-height:46px;box-sizing:border-box;padding:0 12px;line-height:44px;
+  display:flex;align-items:center;text-align:left;-webkit-appearance:none;appearance:none}
+input[type=date]::-webkit-date-and-time-value,input[type=time]::-webkit-date-and-time-value{
+  display:flex;align-items:center;justify-content:flex-start;height:44px;min-height:44px;line-height:44px;margin:0;padding:0;text-align:left}
+input[type=date]::-webkit-datetime-edit,input[type=time]::-webkit-datetime-edit{display:flex;align-items:center;height:44px;line-height:44px;padding:0}
+input[type=date]::-webkit-datetime-edit-fields-wrapper,input[type=time]::-webkit-datetime-edit-fields-wrapper{display:flex;align-items:center;padding:0}
+input[type=date]::-webkit-calendar-picker-indicator,input[type=time]::-webkit-calendar-picker-indicator{margin:0 0 0 auto}
 </style>
 </head>
 <body>
