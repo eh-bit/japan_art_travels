@@ -241,7 +241,7 @@
     ],
     "lat": 35.0244,
     "lng": 135.7944,
-    "i": "🚶",
+    "img": "filosofernas-alle",
     "d": "Smal stig längs ett vattendrag mellan Silverpaviljongen och tempelklustret Nanzen-ji."
    },
    {
@@ -731,7 +731,7 @@
     "g": [
      "fri"
     ],
-    "i": "♨️",
+    "img": "mishima-onsen",
     "d": "Onsen-hotell med Fuji-utsikt och bad både inomhus och utomhus."
    }
   ]
@@ -940,7 +940,7 @@
      "mat",
      "ingar"
     ],
-    "i": "🍽️",
+    "img": "shishiiwa-dinner",
     "d": "Middag i huset Nishizawa designat. Prisbelönt kök där kocken väljer ut det bästa han har."
    }
   ]
@@ -1027,7 +1027,7 @@
      "aktivitet",
      "ingar"
     ],
-    "i": "📚"
+    "img": "shishiiwa"
    },
    {
     "t": "19:00",
@@ -1037,7 +1037,7 @@
      "mat",
      "ingar"
     ],
-    "i": "🍽️"
+    "img": "shishiiwa-dinner"
    }
   ]
  },
@@ -1113,7 +1113,7 @@
      "mat",
      "ingar"
     ],
-    "i": "🍽️",
+    "img": "shiroiya-dinner",
     "d": "Gruppen delas i två halvor och äter längs bardisken som omgärdar köket. På hotellet finns också en bar för bara 5–6 personer, designad av Sugimoto."
    }
   ]
