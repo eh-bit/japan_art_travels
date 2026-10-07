@@ -1427,9 +1427,17 @@ function drawHotels() {
 }
 
 /* ---------- Nu ---------- */
+// Aktiviteter utan egen bild (resor m.m.): ortens bild som fond, stor ikon och en förloppslinje till nästa punkt
+function nowCityImg(d, m) {
+  const o = cityOfDay(d.n);
+  if (!o.length) return null;
+  const c = o.length > 1 && m >= mins(bytTid(d, o[0], o[1])) ? o[1] : o[0];
+  return c.img || null;
+}
 function coverHtml(o) {
-  const bg = o.img ? `url(img/${o.img}.jpg)` : 'linear-gradient(145deg,#62651e,#49351d)';
-  return `<section class="cover" style="background-image:linear-gradient(180deg,rgba(25,21,15,.04) 25%,rgba(25,21,15,.2) 55%,rgba(25,21,15,.88) 100%),${bg}" onclick="${o.go}">
+  const bg = o.src ? `url('${o.src}')` : o.img ? `url(img/${o.img}.jpg)` : 'linear-gradient(145deg,#62651e,#49351d)';
+  const tint = '';
+  return `<section class="cover" style="background-image:linear-gradient(180deg,rgba(25,21,15,.04) 25%,rgba(25,21,15,.2) 55%,rgba(25,21,15,.88) 100%),${tint}${bg}" onclick="${o.go}">
     <div class="ctop"><div><span class="lt">Japansk tid · ${o.hm}</span><span class="hn">${o.label}</span></div>
     <div class="cr"><span class="lt">${o.dayTxt}</span><span class="fd">${o.dateTxt}</span></div></div>
     <div class="ccopy"><h1>${esc(o.title)}</h1><div class="cdesc">${esc(o.desc)}</div>
@@ -1453,32 +1461,43 @@ function drawNow() {
 
   document.getElementById('nusub').textContent = `Dag ${d.n} · ${d.wd} ${d.dl}`;
   const m = pre ? (pre.diff > 0 ? -1 : 1440) : mins(hm);
-  const eff = i => S.times['d' + d.n + '-' + i] || d.acts[i].t;
-  const order = d.acts.map((a, i) => i).sort((x, y) => mins(eff(x)) - mins(eff(y)));
+  // Alla planerade punkter med tid den här dagen, även egna. Startar flera samtidigt
+  // går Egna först och en enda väljs (de övriga syns fortfarande i Resplan).
+  const tidOk = k => /^\d{1,2}:\d{2}$/.test(IDX[k].t || '');
+  const grupper = {};
+  Object.keys(IDX).filter(k => IDX[k].dayN === d.n && tidOk(k)).forEach(k => {
+    const mm = mins(IDX[k].t);
+    const egen = x => (IDX[x].g || []).includes('egen');
+    if (!(mm in grupper) || (egen(k) && !egen(grupper[mm]))) grupper[mm] = k;
+  });
+  const order = Object.keys(grupper).map(Number).sort((x, y) => x - y).map(mm => grupper[mm]);
+  const eff = k => IDX[k].t;
+  const bildSrc = a => a.photo && PHOTOS[a.photo] ? PHOTOS[a.photo] : (a.img ? `img/${a.img}.jpg` : '');
+  const bg = a => { const s = bildSrc(a); return s ? `background-image:url('${s}')` : ''; };
   let ci = -1, ni = -1;
-  order.forEach(i => { if (mins(eff(i)) <= m) ci = i; else if (ni < 0) ni = i; });
+  order.forEach((k, n) => { if (mins(eff(k)) <= m) ci = n; else if (ni < 0) ni = n; });
 
-  const ck = ci >= 0 ? ci : order[0], ca = d.acts[ck];
-  const bg = u => u ? `background-image:url(img/${u}.jpg)` : '';
+  const ckn = ci >= 0 ? ci : 0, ck = order[ckn], ca = ck ? IDX[ck] : { n: d.title, d: '', m: '' };
   let h = pre ? coverHtml({ img: 'nijo', label: pre.diff > 0 ? 'Nedräkning' : 'Tack för resan',
     title: pre.diff > 0 ? (pre.diff === 1 ? 'Imorgon bär det av' : pre.diff + ' dagar kvar') : 'Resan är genomförd',
-    desc: pre.diff > 0 ? 'Första dagen: ' + d.title : '16 dagar, Kyoto till Tokyo.', time: pre.diff > 0 ? eff(ck) : '', place: pre.diff > 0 ? esc(d.city) : 'Tokyo',
-    hm, go: pre.diff > 0 ? `openAct('d${d.n}-${ck}')` : 'goPlan(1)', dayTxt: `${DAYS.length} dagar`, dateTxt: '12–27 oktober 2026' }) :
-    coverHtml({ img: ca.img, label: ci >= 0 ? 'Pågår nu' : 'Dagen börjar', title: ci >= 0 ? ca.n : d.title,
-    desc: ca.d || ca.m || '', time: eff(ck), place: esc(d.city), hm, go: `openAct('d${d.n}-${ck}')`,
+    desc: pre.diff > 0 ? 'Första dagen: ' + d.title : '16 dagar, Kyoto till Tokyo.', time: pre.diff > 0 && ck ? eff(ck) : '', place: pre.diff > 0 ? esc(d.city) : 'Tokyo',
+    hm, go: pre.diff > 0 && ck ? `openAct('${ck}')` : 'goPlan(1)', dayTxt: `${DAYS.length} dagar`, dateTxt: '12–27 oktober 2026' }) :
+    coverHtml({ src: bildSrc(ca), img: bildSrc(ca) ? null : nowCityImg(d, m),
+    label: ci >= 0 ? 'Pågår nu' : 'Dagen börjar', title: ci >= 0 ? ca.n : d.title,
+    desc: ca.d || ca.m || '', time: ck ? eff(ck) : '', place: esc(d.city), hm, go: ck ? `openAct('${ck}')` : 'goPlan(' + d.n + ')',
     dayTxt: `Dag ${pad(d.n)} / ${DAYS.length}`, dateTxt: `${d.wd} ${d.dl}` });
-  const tot0 = d.acts.length, dn0 = d.acts.filter((a, i) => isDone('d' + d.n + '-' + i)).length;
+  const tot0 = order.length, dn0 = order.filter(k => isDone(k)).length;
   h += `<div class="nowbody"><div class="phead"><span>Dagens program</span><span>${dn0} av ${tot0} klara</span></div>
-    <div class="track" style="grid-template-columns:repeat(${tot0},1fr)">${order.map(i => `<i class="${isDone('d' + d.n + '-' + i) ? 'done' : i === ci ? 'now' : ''}"></i>`).join('')}</div>`;
+    <div class="track" style="grid-template-columns:repeat(${Math.max(tot0, 1)},1fr)">${order.map((k, n) => `<i class="${isDone(k) ? 'done' : n === ci ? 'now' : ''}"></i>`).join('')}</div>`;
   if (ni >= 0) {
-    const a = d.acts[ni], dm = mins(eff(ni)) - m;
+    const nk = order[ni], a = IDX[nk], dm = mins(eff(nk)) - m;
     h += `<div class="heading"><strong>${pre ? 'Första dagen' : 'Härnäst'}</strong><em>${pre ? d.wd + ' ' + d.dl : 'om ' + (dm >= 60 ? Math.floor(dm / 60) + ' tim' + (dm % 60 ? ' ' + pad(dm % 60) + ' min' : '') : dm + ' min')}</em></div>
-      <section class="story" onclick="openAct('d${d.n}-${ni}')"><div class="simg" style="${bg(a.img)}">${a.img ? '' : a.i || '📍'}</div>
-      <div class="scopy"><div class="stime">${eff(ni)}</div><h2>${esc(a.n)}</h2><p>${esc(a.m || '')}</p></div></section>`;
-    const rest = order.filter(i => mins(eff(i)) > mins(eff(ni))).slice(0, 3);
-    if (rest.length) h += `<div class="more">${pre ? 'Senare under dagen' : 'Senare idag'}</div>` + rest.map(i => { const a2 = d.acts[i];
-      return `<section class="later" onclick="openAct('d${d.n}-${i}')"><div class="limg" style="${bg(a2.img)}">${a2.img ? '' : a2.i || '📍'}</div>
-        <div><div class="ltime">${eff(i)}</div><h3>${esc(a2.n)}</h3><p>${esc(a2.m || '')}</p></div></section>`; }).join('');
+      <section class="story" onclick="openAct('${nk}')"><div class="simg" style="${bg(a)}">${bildSrc(a) ? '' : a.i || '📍'}</div>
+      <div class="scopy"><div class="stime">${eff(nk)}</div><h2>${esc(a.n)}</h2><p>${esc(a.m || '')}</p></div></section>`;
+    const rest = order.slice(ni + 1);
+    if (rest.length) h += `<div class="more">${pre ? 'Senare under dagen' : 'Senare idag'}</div>` + rest.map(k => { const a2 = IDX[k];
+      return `<section class="later" onclick="openAct('${k}')"><div class="limg" style="${bg(a2)}">${bildSrc(a2) ? '' : a2.i || '📍'}</div>
+        <div><div class="ltime">${eff(k)}</div><h3>${esc(a2.n)}</h3><p>${esc(a2.m || '')}</p></div></section>`; }).join('');
   } else h += `<div class="heading"><strong>Kvällen</strong><em>Dagens program är slut</em></div>`;
   h += '</div>';
   nb.innerHTML = h;
@@ -1580,10 +1599,26 @@ addEventListener('offline', drawBanners);
    Bockar användaren själv i/ur en punkt gäller det i stället. */
 function autoPassed(k) {
   const a = IDX[k];
-  if (!a || !a.dayN || !a.date || !a.t || !(a.g || []).includes('ingar')) return false;
+  if (!a || !a.dayN || !a.date || !a.t) return false;
+  const g = a.g || [];
+  const ingar = g.includes('ingar'), transport = g.includes('transport');
+  if (!ingar && !transport) return false;
   const t = now();
   const iso = jp(t, { year: 'numeric', month: '2-digit', day: '2-digit' });
-  return a.date < iso || (a.date === iso && mins(a.t) <= mins(jp(t, { hour: '2-digit', minute: '2-digit' })));
+  if (a.date < iso) return true;
+  if (a.date > iso) return false;
+  const nu = mins(jp(t, { hour: '2-digit', minute: '2-digit' }));
+  if (ingar && mins(a.t) <= nu) return true;          // Ingår: klar när starttiden passerat
+  if (transport) {                                    // Transport: klar när nästa punkt på dagen startar
+    let nasta = null;
+    for (const k2 in IDX) {
+      const b = IDX[k2];
+      if (k2 === k || b.dayN !== a.dayN || !b.t || mins(b.t) <= mins(a.t)) continue;
+      if (nasta === null || mins(b.t) < nasta) nasta = mins(b.t);
+    }
+    if (nasta !== null && nasta <= nu) return true;
+  }
+  return false;
 }
 const isDone = k => S.done[k] !== undefined ? !!S.done[k] : autoPassed(k);
 const autoRefresh = () => { drawActs(); drawNow(); backupInfo(); };
