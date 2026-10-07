@@ -586,6 +586,46 @@ label.fl,.editrow .el{font-size:9px;letter-spacing:.16em;color:var(--ink-soft)}
 .desc.hint{font-size:11.5px;color:var(--ink-faint)}
 .sheet .links a,.maplink{font-family:Arial,sans-serif}
 textarea,input[type=text],input[type=tel]{font-family:var(--serif)}
+/* ---- Packning enligt nya mallen ---- */
+.wsum{position:relative;margin:0 -8px 18px;padding:18px 18px 16px;overflow:hidden;color:#fff;border-radius:0;
+  background:linear-gradient(120deg,#35281b,#65523c)}
+.wsum:after{content:"";position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(circle at 84% 12%,rgba(217,86,79,.22),transparent 24%),linear-gradient(145deg,transparent 45%,rgba(255,255,255,.05) 45% 46%,transparent 46%)}
+.wsum>*{position:relative;z-index:1}
+.wsum .lb{font:8px Arial,sans-serif;letter-spacing:.18em;text-transform:uppercase;color:#ddccb6;margin:0}
+.wsum .big{font:400 38px/.95 var(--serif);letter-spacing:0;margin:11px 0 6px}
+.wsum .sub{font:italic 11px/1.4 var(--serif);color:#eadfce;margin:0;max-width:310px}
+.wsum .delar{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:16px}
+.wsum .del{padding:8px 9px;border-top:1px solid rgba(255,255,255,.28);background:rgba(255,255,255,.05);border-radius:0}
+.wsum .del .k{font:6px Arial,sans-serif;letter-spacing:.13em;color:#d9cab7}
+.wsum .del .v{font:400 18px var(--serif);margin-top:5px}
+.wsum .del .n{font:italic 8px var(--serif);color:#d9cab7;margin-top:0}
+.pkprog{gap:10px;margin-bottom:17px}
+.pkprog .bar{height:4px;border-radius:999px;background:#d7cfc1}
+.pkprog .bar i{background:var(--sage)}
+.pkprog .n{font:7px Arial,sans-serif;letter-spacing:.13em;text-transform:uppercase;color:var(--ink-soft);font-weight:400}
+.pkcat{background:rgba(251,248,241,.65);border:1px solid var(--border);border-radius:0;padding:0 0 4px;margin-bottom:12px}
+.pkhead{background:transparent;padding:8px 10px 8px 4px;gap:8px}
+.cbox{width:17px;height:17px;border:1px solid #bfb5a5;border-radius:5px;background:transparent}
+.cbox.on,.cbox.part{background:var(--sage);border-color:var(--sage)}
+.cbox svg{width:10px;height:10px}
+.ctitle .cn{font:400 17px var(--serif);letter-spacing:0;color:var(--ink)}
+.pkcat.klar .cn{color:var(--ink-faint)}
+.ctitle .cc{font:8px Arial,sans-serif;color:var(--ink-soft);font-weight:400}
+.pkhead .cb{color:var(--primary);font-size:13px}
+.cedit{border-radius:0!important;font-family:var(--serif)!important}
+.pkcat .pk{background:transparent;border:0;border-top:1px solid var(--border);border-radius:0;margin:0 10px 0;padding:10px 0 10px 0;gap:10px}
+.pkcat .pk .box{width:15px;height:15px;border:1px solid #c7bdad;border-radius:5px;background:transparent}
+.pkcat .pk.klar .box{background:var(--sage);border-color:var(--sage)}
+.pkcat .pk.klar{opacity:.45}.pkcat .pk.klar .t{color:var(--ink);text-decoration:line-through}
+.pk .vf{font:700 7px Arial,sans-serif;padding:5px 8px;background:var(--sage-soft);color:#66703d}
+.pk .del{font-size:15px}
+.pkaddrow{padding:5px 10px 8px;margin-top:2px;gap:7px}
+.pkaddrow input,.pkadd input{border:0;border-bottom:1px solid var(--border);border-radius:0;background:transparent;padding:10px 4px;font:italic 12px var(--serif);color:var(--ink)}
+.pkaddrow button,.pkadd button{width:38px;flex:0 0 38px;border-radius:0;background:var(--primary);color:#fff;font-size:19px}
+.pkadd{margin-top:14px;gap:8px}
+.pkbody:empty:before{padding:6px 10px 8px}
+.pkph{border-radius:0}
 </style>
 </head>
 <body>
