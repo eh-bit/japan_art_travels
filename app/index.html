@@ -701,6 +701,17 @@ input[type=date]::-webkit-date-and-time-value,input[type=time]::-webkit-date-and
 input[type=date]::-webkit-datetime-edit,input[type=time]::-webkit-datetime-edit{display:flex;align-items:center;height:44px;line-height:44px;padding:0}
 input[type=date]::-webkit-datetime-edit-fields-wrapper,input[type=time]::-webkit-datetime-edit-fields-wrapper{display:flex;align-items:center;padding:0}
 input[type=date]::-webkit-calendar-picker-indicator,input[type=time]::-webkit-calendar-picker-indicator{margin:0 0 0 auto}
+/* packlista: mjukare, linjerad "+"-knapp som sitter ihop med inmatningsraden */
+.pkaddrow,.pkadd{align-items:flex-end}
+.pkaddrow button,.pkadd button{
+  width:32px;height:32px;flex:0 0 32px;padding:0;margin:0 0 3px;
+  display:inline-flex;align-items:center;justify-content:center;
+  border:1px solid rgba(73,53,29,.35);border-radius:50%;background:transparent;color:var(--primary);
+  font:300 20px/1 var(--serif);cursor:pointer;
+  transition:background .15s,color .15s,border-color .15s,transform .1s}
+.pkaddrow button:hover,.pkadd button:hover{border-color:var(--primary)}
+.pkaddrow button:active,.pkadd button:active{background:var(--primary);color:var(--paper);border-color:var(--primary);transform:scale(.94)}
+.pkaddrow input:focus,.pkadd input:focus{outline:0;border-bottom-color:var(--primary)}
 </style>
 </head>
 <body>

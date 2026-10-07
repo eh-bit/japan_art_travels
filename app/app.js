@@ -1544,8 +1544,13 @@ function importData(input) {
     try {
       const o = JSON.parse(r.result);
       if (!confirm('Ersätt anteckningar, bockar och egna platser med innehållet i filen?')) return;
-      ['done', 'notes', 'places', 'times', 'tags', 'contacts', 'packCats'].forEach(k => { if (o[k]) S[k] = o[k]; });
-      save(); buildIndex(); drawActs(); drawPlaces(); drawNow(); drawLeaders(); backupInfo(); drawPack();
+      // cnotes = stadsanteckningar, days/citys = flyttade punkter. Fanns inte med tidigare vid import.
+      ['done', 'notes', 'cnotes', 'places', 'times', 'tags', 'days', 'citys', 'contacts', 'packCats'].forEach(k => { if (o[k]) S[k] = o[k]; });
+      S.cnotes = S.cnotes || {}; S.days = S.days || {}; S.citys = S.citys || {};
+      // Packlistan: ny kategoriform (packCats) används direkt. Äldre backuper har en platt lista (pack)
+      // som packInit() flyttar över till en kategori.
+      if (!Array.isArray(o.packCats) && Array.isArray(o.pack)) { S.packCats = null; S.pack = o.pack; }
+      save(); buildIndex(); drawActs(); drawPlaces(); drawNow(); drawLeaders(); backupInfo(); drawPack(); drawCities();
       alert('Importen är klar.');
     } catch (e) { alert('Kunde inte läsa filen: ' + e.message); }
   };
@@ -1553,12 +1558,13 @@ function importData(input) {
   input.value = '';
 }
 function backupInfo() {
-  const n = S.places.length, notes = Object.keys(S.notes).filter(k => S.notes[k]).length;
+  const n = S.places.length, notes = Object.keys(S.notes).filter(k => S.notes[k]).length + Object.keys(S.cnotes).filter(k => S.cnotes[k]).length;
   const done = Object.keys(S.done).filter(k => S.done[k]).length;
   const num = Object.keys(S.contacts).length;
+  const pk = Array.isArray(S.packCats) ? S.packCats.flatMap(c => c.items) : [];
   const ph = S.places.filter(p => p.photo).length;
   document.getElementById('bkinfo').textContent =
-    `${notes} anteckningar · ${done} avbockade · ${n} egna platser · ${num} sparade nummer` +
+    `${notes} anteckningar · ${done} avbockade · ${pk.length} packlisteposter · ${n} egna platser · ${num} sparade nummer` +
     (ph ? ` · ${ph} foton (ingår ej i exporten)` : '') +
     (S.lastBackup ? ` · senast exporterad ${S.lastBackup.slice(0, 10)}` : '');
 }
