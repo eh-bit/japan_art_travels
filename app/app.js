@@ -1175,28 +1175,38 @@ const PK_CHECK = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" st
 const PK_DASH = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="4"><path d="M6 12h12"/></svg>';
 const PK_CHEV = '<svg class="chev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M9 5l7 7-7 7"/></svg>';
 
-function drawPack() {
-  packInit();
-  let lagst = 99, hogst = -99, lagstOrt = '', hogstOrt = '', regn = 0, dagar = 0;
+function drawPackSum() {
+  let varm = null, kall = null, natt = null, regn = 0, dagar = 0, prog = 0;
   DAYS.forEach(d => {
     const c = cityOfDay(d.n).slice(-1)[0];
-    const n = c && wxNormal(c, d.date);
-    if (!n) return;
-    dagar++;
-    if (n[0] > hogst) { hogst = n[0]; hogstOrt = c.name.split(' och ')[0]; }
-    if (n[1] < lagst) { lagst = n[1]; lagstOrt = c.name.split(' och ')[0]; }
-    if (n[2] >= 50) regn++;
+    if (!c) return;
+    const p = wxPrognos(c, d.date), n = wxNormal(c, d.date);
+    const v = p ? { max: p.max, min: p.min, regn: p.regn >= 50 } : n ? { max: n[0], min: n[1], regn: n[2] >= 50 } : null;
+    if (!v) return;
+    dagar++; if (p) prog++;
+    const r = { max: Math.round(v.max), min: Math.round(v.min), ort: c.name.split(' och ')[0] };
+    if (!varm || r.max > varm.max) varm = r;      // högsta dagstemperatur
+    if (!kall || r.max < kall.max) kall = r;      // lägsta dagstemperatur
+    if (!natt || r.min < natt.min) natt = r;      // kallaste natten
+    if (v.regn) regn++;
   });
+  const kalla = !prog ? 'Normalvärden för årstiden (sjuårsmedel).'
+    : prog === dagar ? 'Aktuell prognos.'
+    : `Prognos för ${prog} av ${dagar} dagar, resten normalvärden.`;
   document.getElementById('packsum').innerHTML = dagar ? `<div class="wsum">
     <div class="lb">Vädret under resan</div>
-    <div class="big">${Math.round(lagst)}° till ${Math.round(hogst)}°</div>
-    <div class="sub">Varmast i ${esc(hogstOrt)}, kallast i ${esc(lagstOrt)}.
-      Regn mer troligt än inte ${regn} av ${dagar} dagar.</div>
+    <div class="big">${kall.max}° till ${varm.max}°</div>
+    <div class="sub">Dagstemperatur, natt inom parentes. Kallaste natten ${natt.min}° i ${esc(natt.ort)}.
+      Regn mer troligt än inte ${regn} av ${dagar} dagar. ${kalla}</div>
     <div class="delar">
-      <div class="del"><div class="k">Varmast</div><div class="v">${Math.round(hogst)}°</div><div class="n">${esc(hogstOrt)}</div></div>
-      <div class="del"><div class="k">Kallast natt</div><div class="v">${Math.round(lagst)}°</div><div class="n">${esc(lagstOrt)}</div></div>
+      <div class="del"><div class="k">Högsta dag</div><div class="v">${varm.max}° (${varm.min}°)</div><div class="n">${esc(varm.ort)}</div></div>
+      <div class="del"><div class="k">Lägsta dag</div><div class="v">${kall.max}° (${kall.min}°)</div><div class="n">${esc(kall.ort)}</div></div>
       <div class="del"><div class="k">Regndagar</div><div class="v">${regn}</div><div class="n">av ${dagar}</div></div>
     </div></div>` : '';
+}
+function drawPack() {
+  packInit();
+  drawPackSum();
   const alla = pkAll(), klara = alla.filter(x => x.done).length;
   document.getElementById('packprog').innerHTML = alla.length
     ? `<div class="bar"><i style="width:${Math.round(klara / alla.length * 100)}%"></i></div>
@@ -1768,14 +1778,26 @@ drawRoute(); drawCities();
 drawNow(); drawBanners(); backupInfo();
 loadPhotos().then(() => { drawPlaces(); drawActs(); drawNow(); backupInfo(); reparaBildkallor(); });
 // Vädret hämtas i bakgrunden. Tills det kommit visas normalvärdena.
-if (Date.now() - WX.at > 3 * 3600 * 1000)
-  wxHamta().then(ok => { if (ok) { drawActs(); if (curCity) drawCityWx(CITIES.find(c => c.n === curCity)); } });
+let wxBusy = false;
+function wxRita() {
+  drawActs();
+  if (curCity) drawCityWx(CITIES.find(c => c.n === curCity));
+  if (document.getElementById('s-mina').classList.contains('on')) drawPackSum();
+}
+function wxUppdatera() {
+  if (wxBusy || Date.now() - WX.at < 3 * 3600 * 1000) return;
+  wxBusy = true;
+  wxHamta().then(ok => { if (ok) wxRita(); }).finally(() => { wxBusy = false; });
+}
+wxUppdatera();
+addEventListener('online', wxUppdatera);
 setInterval(autoRefresh, 60000);
 // När appen plockas fram igen kan dygnet ha vänt — hoppa till rätt dag om
 // användaren inte själv har bläddrat någon annanstans.
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) return;
   autoRefresh();
+  wxUppdatera();
   const d = todayDay() || DAYS[0].n;
   if (!valdSjalv && d !== sel) { sel = d; drawChips(); drawActs(); }
 });
