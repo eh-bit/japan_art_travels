@@ -1,0 +1,1559 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="UTF-8">
+<title>Arkitektur och konst i Japan — Reseguide</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+
+@page { margin: 16mm 14mm; }
+body { font-family: 'DejaVu Sans', Arial, sans-serif; color:#2b2b2b; font-size:10.5pt; line-height:1.55; background:#ffffff; margin:0; }
+a { color:#123c3a; }
+.serif { font-family: Georgia, 'DejaVu Serif', serif; }
+
+:root {
+  --primary: #205e5b;
+  --primary-dark: #123c3a;
+  --accent: #e07a5f;
+  --accent-soft: #fbe4da;
+  --sage: #5f9e82;
+  --sage-soft: #e3f1e9;
+  --paper: #fbfaf7;
+  --card: #ffffff;
+  --border: #e6e2d8;
+  --ink-soft: #6b6b64;
+}
+
+/* ===== COVER ===== */
+.cover { text-align:center; padding-top:70px; page-break-after: always; }
+.cover .badge { display:inline-block; background:var(--primary-dark); color:#fff; padding:5px 16px; border-radius:14px; font-size:9.5pt; letter-spacing:2px; }
+.cover h1 { font-family: Georgia, serif; font-size:34pt; color:var(--primary); margin:22px 0 6px 0; }
+.cover .subtitle { font-size:13pt; color:var(--ink-soft); }
+.cover .tagline { font-size:11pt; color:#8a8a82; margin-top:26px; font-style:italic; font-family:Georgia,serif;}
+.cover .meta { margin-top:36px; font-size:10.5pt; line-height:1.8; }
+.cover .meta a { color:var(--primary-dark); }
+
+/* ===== SECTION HEADINGS ===== */
+h2.section-heading { font-family:Georgia,serif; color:var(--primary); font-size:17pt; border-bottom:2px solid var(--accent); padding-bottom:8px; margin:0 0 16px 0; }
+.section-intro { color:var(--ink-soft); font-size:9.8pt; margin:-10px 0 18px 0; }
+.section-wrap { page-break-after: always; }
+
+/* ===== JOURNEY STRIP (schedule) ===== */
+.journey-grid { display:grid; grid-template-columns: 1fr 1fr; gap:10px; }
+.journey-card { background:var(--card); border:1px solid var(--border); border-left:4px solid var(--accent); border-radius:8px; padding:10px 14px; }
+.journey-card .jc-daynum { font-family:Georgia,serif; font-size:15pt; color:var(--primary); font-weight:bold; display:inline-block; }
+.journey-card .jc-date { font-size:8pt; color:var(--accent); font-weight:bold; letter-spacing:0.5px; text-transform:uppercase; float:right; margin-top:4px; }
+.journey-card .jc-region { font-size:9.3pt; color:var(--ink-soft); font-style:italic; margin:2px 0 5px 0; }
+.journey-card .jc-hi { font-size:8.7pt; line-height:1.4; }
+
+/* ===== CITY / HOTEL CARD TEMPLATE ===== */
+.city-card { display:grid; grid-template-columns: 34% 64%; gap:2%; background:var(--card); border:1px solid var(--border); border-radius:10px; overflow:hidden; margin-bottom:14px; page-break-inside:avoid; }
+.city-card img { width:100%; height:100%; object-fit:cover; display:block; min-height:130px; }
+.city-card-body { padding:14px 18px 14px 4px; }
+.city-card-body h3 { font-family:Georgia,serif; color:var(--primary); font-size:13pt; margin:0 0 6px 0; }
+.city-card-body p { font-size:9.3pt; margin:0 0 8px 0; }
+.city-card-body a.city-link { font-size:8.5pt; background:var(--sage-soft); color:#2f5e46; padding:3px 10px; border-radius:10px; text-decoration:none; }
+
+/* ===== SHARED DAY-PAGE BITS ===== */
+.kicker { font-size:9pt; letter-spacing:2.5px; text-transform:uppercase; font-weight:bold; }
+.timeline { list-style:none; padding:0; margin:0 0 16px 0; }
+.timeline li { border-left:2px solid var(--accent); padding:0 0 11px 12px; margin-left:2px; position:relative; }
+.timeline li:before { content:''; position:absolute; left:-5px; top:2px; width:8px; height:8px; border-radius:50%; background:var(--accent); }
+.timeline li.free:before { background:var(--primary); }
+.timeline .time { font-weight:bold; font-size:8pt; text-transform:uppercase; letter-spacing:0.5px; color:var(--primary); display:block; }
+.timeline li.free .time { color:var(--sage); }
+.timeline .activity { font-size:9pt; }
+
+.map-frame { border:1px solid var(--border); border-radius:8px; overflow:hidden; }
+
+/* ---- FIXED notes box: labels sit clean, ruled line only in the writing strip below ---- */
+.notes-box { background:#fff; border:1px solid var(--border); border-radius:8px; padding:12px 16px; page-break-inside:avoid; }
+.notes-box-title { font-size:8pt; letter-spacing:1.5px; text-transform:uppercase; color:var(--accent); font-weight:bold; margin-bottom:10px; }
+.hotel-box { background:var(--sage-soft); border:1px solid #cfe3d8; border-radius:8px; padding:10px 14px; margin-bottom:12px; page-break-inside:avoid; }
+.hotel-box-title { font-size:7.6pt; letter-spacing:1.5px; text-transform:uppercase; color:#2f5e46; font-weight:bold; margin-bottom:5px; }
+.hotel-box-name { font-family:Georgia,serif; font-size:10pt; color:var(--primary-dark); margin-bottom:4px; }
+.hotel-box-empty { background:#faf8f4; border:1px dashed #d8cdb8; }
+.flight-box { background:#e5f2f1; border:1px solid #b9d9d5; border-radius:8px; padding:10px 14px; margin-bottom:12px; page-break-inside:avoid; }
+.flight-box-title { font-size:7.6pt; letter-spacing:1.5px; text-transform:uppercase; color:#1f6f6b; font-weight:bold; margin-bottom:6px; }
+.flight-row { font-size:8.5pt; margin-bottom:5px; line-height:1.4; }
+.flight-row:last-child { margin-bottom:0; }
+.flight-row b { color:var(--primary-dark); font-family:Georgia,serif; margin-right:5px; }
+.flight-row .flight-route { color:#2b2b2b; }
+.flight-row .flight-time { color:var(--ink-soft); font-size:8pt; display:block; margin-top:1px; }
+.hotel-box-placeholder { font-size:8.7pt; color:#8a8a82; font-style:italic; min-height:18px; outline:none; }
+.hotel-box-placeholder:empty:before { content: attr(data-placeholder); }
+.hotel-box-placeholder:focus { color:#2b2b2b; font-style:normal; }
+.notes-row { margin-bottom:11px; }
+.notes-row:last-child { margin-bottom:2px; }
+.notes-label { font-size:8.7pt; font-weight:bold; color:var(--primary-dark); margin-bottom:3px; }
+.notes-rule { min-height:34px; border-bottom:1px solid var(--border); outline:none; font-size:8.9pt; color:#2b2b2b; padding:3px 2px 6px 2px; }
+.notes-rule:empty:before { content: attr(data-placeholder); color:#b8ac8f; font-style:italic; }
+.notes-rule:focus { background-color:#fffef9; }
+
+.place-row { display:flex; gap:14px; margin:15px 0; padding-bottom:14px; border-bottom:1px solid var(--border); page-break-inside:avoid; }
+.place-row:last-child { border-bottom:none; }
+.place-row img { width:125px; height:96px; object-fit:cover; border-radius:8px; border:1px solid var(--border); }
+.place-info h4 { margin:0 0 3px 0; font-size:11pt; color:var(--primary); font-family:Georgia,serif; }
+.place-info a { font-size:8.3pt; margin-right:9px; }
+.exhibit-tag { display:inline-block; background:var(--sage-soft); color:#2f5e46; font-size:7.8pt; padding:2px 9px; border-radius:9px; margin-top:5px; }
+
+/* ===== DAY PAGE MASTHEAD (shared) ===== */
+.day-page { page-break-after: always; background:var(--card); }
+.day-masthead { text-align:center; padding:6px 0 12px 0; border-bottom:1px solid var(--border); margin-bottom:0; }
+.day-masthead .pub { font-family:Georgia,serif; font-size:8.5pt; letter-spacing:3px; text-transform:uppercase; color:var(--ink-soft); }
+.day-hero { position:relative; height:300px; overflow:hidden; }
+.day-hero img { width:100%; height:100%; object-fit:cover; display:block; }
+.day-hero-overlay { position:absolute; left:0; right:0; bottom:0; padding:20px 34px; background:linear-gradient(0deg, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0) 100%); }
+.day-hero .kicker { color:#f2ded3; letter-spacing:3px; }
+.day-hero-cap { font-size:7.8pt; color:var(--ink-soft); text-align:right; padding:4px 34px; font-style:italic; }
+.day-headline-block { text-align:center; padding:20px 50px 6px 50px; }
+.day-headline { font-family:Georgia,'DejaVu Serif',serif; font-size:32pt; color:var(--primary-dark); line-height:1.05; margin:0 0 8px 0; }
+.day-deck { font-family:Georgia,serif; font-style:italic; font-size:11.5pt; color:var(--ink-soft); max-width:600px; margin:0 auto; line-height:1.5; }
+.day-rule { width:55px; height:2px; background:var(--accent); margin:14px auto; }
+.day-footer { display:flex; justify-content:space-between; font-family:Georgia,serif; font-style:italic; font-size:8pt; color:var(--ink-soft); padding:10px 34px; border-top:1px solid var(--border); }
+
+/* ===== VARIANT 1: pull-quote layout ===== */
+.v1-columns { display:grid; grid-template-columns: 65% 31%; gap:4%; padding:6px 34px 24px 34px; }
+.v1-main p.lead:first-letter { float:left; font-family:Georgia,serif; font-size:46pt; line-height:0.72; padding:5px 9px 0 0; color:var(--accent); font-weight:bold; }
+.v1-main p { font-family:Georgia,serif; font-size:10.3pt; }
+.pullquote { font-family:Georgia,serif; font-style:italic; font-size:15pt; color:var(--primary); border-top:1px solid var(--accent); border-bottom:1px solid var(--accent); padding:12px 8px; margin:18px 0; text-align:center; line-height:1.4; }
+.essentials { background:var(--paper); border:1px solid var(--border); border-radius:2px; padding:16px; page-break-inside:avoid; }
+.essentials-title { font-family:Georgia,serif; font-size:10.5pt; letter-spacing:1px; text-transform:uppercase; color:var(--primary-dark); border-bottom:2px solid var(--accent); padding-bottom:7px; margin-bottom:11px; }
+.essentials .map-frame { margin-bottom:14px; page-break-inside:avoid; }
+
+/* ===== VARIANT 2: highlight-stats layout (no quote; simpler travel/logistics day) ===== */
+.v2-columns { display:grid; grid-template-columns: 62% 34%; gap:4%; padding:6px 34px 24px 34px; }
+.v2-main p.lead:first-letter { float:left; font-family:Georgia,serif; font-size:42pt; line-height:0.72; padding:5px 9px 0 0; color:var(--accent); font-weight:bold; }
+.v2-main p { font-family:Georgia,serif; font-size:10.3pt; }
+.stat-strip { display:grid; grid-template-columns: repeat(3, 1fr); gap:10px; margin:18px 0; }
+.stat-box { background:var(--sage-soft); border-radius:8px; padding:12px 8px; text-align:center; }
+.stat-box .stat-icon { font-size:17pt; display:block; margin-bottom:4px; }
+.stat-box .stat-text { font-size:8.3pt; color:#2f5e46; font-weight:bold; line-height:1.3; }
+
+/* ===== VARIANT 3: map-spotlight layout (spread-out stops / travel days) ===== */
+.v3-map-banner { position:relative; margin:0 34px; margin-top:-1px; page-break-inside:avoid; }
+.v3-map-banner .map-frame { border-radius:0 0 8px 8px; }
+.v3-map-label { display:inline-block; background:var(--primary); color:#fff; font-size:7.8pt; letter-spacing:1.5px; text-transform:uppercase; padding:4px 12px; border-radius:0 0 8px 0; position:relative; top:0; left:-1px; }
+.v3-columns { display:grid; grid-template-columns: 68% 28%; gap:4%; padding:16px 34px 24px 34px; }
+.v3-main p.lead:first-letter { float:left; font-family:Georgia,serif; font-size:42pt; line-height:0.72; padding:5px 9px 0 0; color:var(--accent); font-weight:bold; }
+.v3-main p { font-family:Georgia,serif; font-size:10.3pt; }
+.v3-side .essentials-title { font-family:Georgia,serif; font-size:9.5pt; letter-spacing:1px; text-transform:uppercase; color:var(--primary-dark); border-bottom:2px solid var(--accent); padding-bottom:6px; margin-bottom:10px; }
+
+.section-wrap { page-break-after: always; }
+
+/* ---- Preserve each element's own background/color exactly when printing (don't force a single color) ---- */
+* { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }
+
+/* ---- Shared horizontal inset matching the day pages' text columns (34px each side) ---- */
+.page-inset { padding-left:34px; padding-right:34px; box-sizing:border-box; }
+
+/* ---- Cover page (now includes the overview map), vertically centered as a group on the page ---- */
+.cover-page { page-break-after: always; margin-top:120px; box-sizing:border-box; }
+.cover-compact { text-align:center; margin-bottom:30px; }
+.cover-compact .badge { display:inline-block; background:var(--primary-dark); color:#fff; padding:5px 16px; border-radius:14px; font-size:9.5pt; letter-spacing:2px; }
+.cover-compact h1 { font-family: Georgia, serif; font-size:25pt; color:var(--primary); margin:14px 0 5px 0; }
+.cover-compact .subtitle { font-size:10.8pt; color:var(--ink-soft); }
+.cover-compact .tagline { font-size:9.3pt; color:#8a8a82; margin-top:8px; font-style:italic; font-family:Georgia,serif;}
+.cover-compact .meta { margin-top:12px; font-size:9pt; line-height:1.6; }
+.cover-compact .meta a { color:var(--primary-dark); }
+
+/* ---- Overview map: themed like the rest of the guide (card, border, accent rule) ---- */
+.ovmap-card { background:var(--card); border:1px solid var(--border); border-left:4px solid var(--accent); border-radius:8px; padding:18px 22px; box-shadow:0 1px 3px rgba(0,0,0,0.05); }
+.ovmap-card .map-section-title { font-family:Georgia,serif; font-size:12.5pt; color:var(--primary); margin:0 0 3px 0; }
+.ovmap-card .map-section-intro { color:var(--ink-soft); font-size:8.8pt; margin:0 0 12px 0; }
+.ovmap-frame { width:100%; height:420px; border:1px solid var(--border); border-radius:8px; overflow:hidden; }
+.leaflet-ovdot { width:28px; height:28px; border-radius:50%; background:var(--primary-dark); color:#fff; border:2.5px solid var(--accent-soft); box-shadow:0 2px 6px rgba(0,0,0,0.3); display:flex; align-items:center; justify-content:center; font-family:Georgia,serif; font-weight:bold; font-size:11pt; }
+
+/* ---- Compact timeline: themed card wrapper matching .essentials/.day-block, larger & pushed down ---- */
+.timeline-section { margin-top:16px; }
+.cp-card { background:var(--paper); border:1px solid var(--border); border-radius:10px; padding:18px 24px 12px 24px; page-break-inside:avoid; }
+.cp-wrap { position:relative; width:100%; margin:0 auto; }
+.cp-node { position:absolute; width:26px; height:26px; border-radius:50%; background:var(--primary-dark); border:2.5px solid var(--accent-soft); color:#fff; font-family:Georgia,serif; font-weight:bold; font-size:9.5pt; display:flex; align-items:center; justify-content:center; z-index:3; transform:translate(-50%,-50%); text-decoration:none; cursor:pointer; }
+.cp-node:hover { background:var(--accent); }
+.cp-row { position:absolute; left:58px; display:flex; gap:11px; align-items:flex-start; right:0; }
+.cp-row img { width:46px; height:46px; object-fit:cover; border-radius:50%; border:2px solid var(--border); flex-shrink:0; }
+.cp-row-body { flex:1; }
+.cp-row-head { display:flex; align-items:baseline; gap:9px; flex-wrap:wrap; }
+.cp-row-head h3 { font-family:Georgia,serif; color:var(--primary); font-size:11.5pt; margin:0; }
+.cp-datepill { background:var(--accent); color:#fff; font-size:7.2pt; font-weight:bold; padding:2px 8px; border-radius:9px; white-space:nowrap; }
+.cp-row-body p { font-size:8.2pt; margin:2px 0 3px 0; line-height:1.32; }
+.cp-row-body a.city-link { font-size:7.2pt; background:var(--sage-soft); color:#2f5e46; padding:2px 8px; border-radius:9px; text-decoration:none; }
+
+
+/* ---- A4: varje dagssida ryms på exakt en sida ---- */
+.day-page { page-break-inside:avoid; }
+.day-hero { height:132px; }
+.day-hero-overlay { padding:10px 34px; }
+.day-hero-cap { padding:2px 34px; font-size:7pt; }
+.day-masthead { padding:2px 0 6px 0; }
+.day-masthead .pub { font-size:7.5pt; }
+.day-headline-block { padding:10px 50px 2px 50px; }
+.day-headline { font-size:19pt; margin:0 0 4px 0; }
+.day-deck { font-size:8.8pt; line-height:1.35; }
+.day-rule { margin:8px auto; }
+.day-footer { padding:5px 34px; font-size:7pt; }
+.v1-columns, .v2-columns { padding:4px 34px 10px 34px; }
+.v3-columns { padding:10px 34px 10px 34px; }
+.v1-main p, .v2-main p, .v3-main p { font-size:8.5pt; margin:0 0 6px 0; }
+.v1-main p.lead:first-letter, .v2-main p.lead:first-letter, .v3-main p.lead:first-letter { font-size:30pt; }
+.pullquote { font-size:11pt; padding:7px 6px; margin:9px 0; }
+.stat-strip { margin:9px 0; }
+.stat-box { padding:7px 6px; }
+.stat-box .stat-icon { font-size:12pt; margin-bottom:2px; }
+.stat-box .stat-text { font-size:7.2pt; }
+.place-row { margin:8px 0; padding-bottom:7px; gap:10px; }
+.place-row img { width:78px; height:58px; }
+.place-info h4 { font-size:9.3pt; }
+.place-info a { font-size:7.2pt; margin-right:7px; }
+.exhibit-tag { font-size:6.8pt; padding:1px 7px; margin-top:3px; }
+.essentials { padding:9px; }
+.essentials-title, .v3-side .essentials-title { font-size:9pt; padding-bottom:4px; margin-bottom:7px; }
+.essentials .map-frame { margin-bottom:8px; }
+.timeline { margin:0 0 9px 0; }
+.timeline li { padding:0 0 4px 10px; }
+.timeline .time { font-size:6.6pt; letter-spacing:0.3px; }
+.timeline .activity { font-size:7.5pt; line-height:1.25; display:block; }
+.hotel-box, .flight-box { padding:6px 9px; margin-bottom:6px; }
+.hotel-box-title, .flight-box-title { font-size:6.6pt; margin-bottom:3px; }
+.hotel-box-name { font-size:8pt; margin-bottom:2px; }
+.hotel-box a.city-link { font-size:6.8pt; }
+.flight-row { font-size:7pt; margin-bottom:2px; line-height:1.25; }
+.flight-row .flight-time { font-size:6.6pt; }
+.notes-box { padding:7px 9px; }
+.notes-box-title { font-size:6.6pt; margin-bottom:4px; }
+.notes-row { margin-bottom:4px; }
+.notes-label { font-size:7.2pt; }
+.notes-rule { min-height:12px; padding:2px 2px 4px 2px; }
+
+.leaflet-daydot { width:12px; height:12px; border-radius:50%; background:var(--accent); border:2px solid #fff; box-shadow:0 1px 3px rgba(0,0,0,0.4); }
+
+</style>
+</head>
+<body>
+
+
+<div class="cover-page page-inset">
+  <div class="cover-compact">
+    <div class="badge">VÄRLDENS RESOR</div>
+    <h1>Arkitektur och konst i Japan</h1>
+    <div class="subtitle">16 dagars resa: Kyoto &ndash; Osaka &ndash; Hiroshima &ndash; Mt Fuji &ndash; Japanska Alperna &ndash; Tokyo</div>
+    <div class="tagline">En personlig reseguide i magasinformat</div>
+    <div class="meta">
+      Avgångar: 5&ndash;20 okt 2026 &middot; 12&ndash;27 okt 2026 &middot; 4&ndash;19 okt 2027 &nbsp;|&nbsp;
+      Pris 2026: 84 900 kr &nbsp;|&nbsp; Pris 2027: 87 900 kr &nbsp;|&nbsp;
+      Färdledare: Jörgen Fredriksson / Markus Oxelman<br>
+      <a href="https://www.varldensresor.se/resor/japan/arkitektur-och-konst-i-japan">Originalresans sida hos Världens Resor &rarr;</a>
+      &nbsp;|&nbsp; 08-669 55 25 &nbsp;|&nbsp; info@varldensresor.se
+    </div>
+  </div>
+  <div class="ovmap-section">
+  <div class="ovmap-card">
+    <div class="map-section-title">Resrutten</div>
+    <p class="map-section-intro">Hela resan i fågelperspektiv, i ordning 1&ndash;9 &mdash; se detaljer och städernas info på nästa uppslag.</p>
+    <div class="ovmap-frame"><div id="ovmap-canvas" style="width:100%; height:100%;"></div></div>
+  </div>
+  </div>
+</div>
+
+<script>
+window.addEventListener('DOMContentLoaded', function() {
+  var stops = [{"num": 1, "name": "Kyoto", "date": "Dag 1\u20133 \u00b7 12\u201314 okt", "lat": 35.0116, "lng": 135.7681, "day": "d1"}, {"num": 2, "name": "Osaka", "date": "Dag 4\u20135 \u00b7 15\u201316 okt", "lat": 34.6937, "lng": 135.5023, "day": "d4"}, {"num": 3, "name": "Kobe (och Ashiya)", "date": "Dag 6 \u00b7 17 okt", "lat": 34.6901, "lng": 135.1955, "day": "d6"}, {"num": 4, "name": "Hiroshima (och Miyajima)", "date": "Dag 6\u20137 \u00b7 17\u201318 okt", "lat": 34.3853, "lng": 132.4553, "day": "d6"}, {"num": 5, "name": "Odawara / Mishima", "date": "Dag 8 \u00b7 19 okt", "lat": 35.19, "lng": 139.1, "day": "d8"}, {"num": 6, "name": "Matsumoto", "date": "Dag 9\u201310 \u00b7 20\u201321 okt", "lat": 36.2381, "lng": 137.972, "day": "d9"}, {"num": 7, "name": "Karuizawa", "date": "Dag 10\u201311 \u00b7 21\u201322 okt", "lat": 36.3487, "lng": 138.6328, "day": "d10"}, {"num": 8, "name": "Maebashi", "date": "Dag 12 \u00b7 23 okt", "lat": 36.3895, "lng": 139.0634, "day": "d12"}, {"num": 9, "name": "Tokyo", "date": "Dag 13\u201316 \u00b7 24\u201327 okt", "lat": 35.6762, "lng": 139.6503, "day": "d13"}];
+  var map = L.map('ovmap-canvas', { scrollWheelZoom:false });
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; OpenStreetMap contributors', maxZoom: 19
+  }).addTo(map);
+  var latlngs = stops.map(function(s) { return [s.lat, s.lng]; });
+  L.polyline(latlngs, { color: '#e07a5f', weight: 3, dashArray: '2,10', opacity: 0.8 }).addTo(map);
+  stops.forEach(function(s) {
+    var icon = L.divIcon({
+      className: '',
+      html: '<div class="leaflet-ovdot" style="cursor:pointer;">' + s.num + '</div>',
+      iconSize: [28, 28],
+      iconAnchor: [14, 14]
+    });
+    L.marker([s.lat, s.lng], { icon: icon })
+      .addTo(map)
+      .bindTooltip(s.num + '. ' + s.name + ' &middot; ' + s.date, { permanent:false, direction:'top' })
+      .on('click', function() { window.location.hash = '#' + s.day; });
+  });
+  var ovBounds = L.latLngBounds(latlngs);
+  map.fitBounds(ovBounds, { padding: [20,20] });
+  (window.__guideMaps = window.__guideMaps || []).push({ map: map, bounds: ovBounds, padding: [26,26] });
+});
+</script>
+
+
+
+<div class="section-wrap page-inset">
+<h2 class="section-heading">Praktisk info inför avresa</h2>
+<p class="section-intro">Det viktigaste ur avreseinformationen: vem som möter gruppen, hur ni når dem — och hur bagaget hanteras under resan.</p>
+
+<div class="notes-box" style="margin-bottom:14px;">
+  <div class="notes-box-title">Färdledare &amp; kontakt</div>
+  <p style="font-size:9.3pt; margin:0 0 8px 0;"><b>Markus Oxelman</b> möter gruppen på Haneda flygplats i Tokyo med en skylt med Världens Resors namn, och följer med på inrikesflyget till Osaka.<br>
+  Japansk mobil: <b>+81 (0)70 5542 3226</b> <span style="color:var(--ink-soft);">(privat nummer, används från avresedagen)</span></p>
+  <p style="font-size:9.3pt; margin:0;"><b>Jörgen Fredriksson</b> tar över som färdledare från Mishima och framråt.<br>
+  Telefon: <b>073-571 68 48</b> &nbsp;&middot;&nbsp; japansk mobil: <b>+81 90-6709 4426</b></p>
+</div>
+
+<div class="notes-box" style="margin-bottom:0;">
+  <div class="notes-box-title">Packning &amp; bagage under resan</div>
+  <p style="font-size:9.3pt; margin:0 0 8px 0;"><b>Vid ankomst till Tokyo:</b> bagaget är incheckat hela vägen till Osaka, men ni hämtar ut det själva i Tokyo och lämnar in det igen efter säkerhetskontroll och tull – en kort promenad i ankomsthallen, utan ny incheckning. Ha därför inget tungt eller ohanterligt som handbagage på långflyget.</p>
+  <p style="font-size:9.3pt; margin:0 0 8px 0;"><b>Dag 6 (17 okt), Osaka &rarr; Hiroshima:</b> det stora bagaget skickas separat från Osaka till Hiroshima. Ni åker Shinkansen från Shin-Kobe med bara en liten väska – packa därför en separat handväska med det ni behöver för en övernattning (toalettsaker, ombyte, mediciner, laddare).</p>
+  <p style="font-size:9.3pt; margin:0;">Bagagetransport ingår vid ett par tillfällen under resan, så räkna med att ni behöver kunna plocka ut ett dygnspaket ur den stora väskan vid mer än ett tillfälle.</p>
+</div>
+</div>
+
+<div class="section-wrap page-inset">
+<h2 class="section-heading">Resrutten &amp; städerna</h2>
+<p class="section-intro">Varje stopp i ordning, med stadens viktigaste info och vilka dagar ni är där.</p>
+<div class="timeline-section">
+<div class="cp-card">
+<div class="cp-wrap"><svg width="80" height="808" viewBox="0 0 80 808" style="position:absolute; top:0; left:0; z-index:1; overflow:visible;"><path d="M 20,26 C 20,72.0 34,72.0 34,118 C 34,164.0 20,164.0 20,210 C 20,256.0 34,256.0 34,302 C 34,348.0 20,348.0 20,394 C 20,440.0 34,440.0 34,486 C 34,532.0 20,532.0 20,578 C 20,624.0 34,624.0 34,670 C 34,716.0 20,716.0 20,762" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-dasharray="1,7" stroke-linecap="round"/></svg><a class="cp-node" style="top:26px; left:20px;" href="#d1">1</a>
+        <div class="cp-row" style="top:-8px;">
+          <img src="https://commons.wikimedia.org/wiki/Special:FilePath/Kyoto,_Japan_(49667780482).jpg?width=200" alt="Kyoto">
+          <div class="cp-row-body">
+            <div class="cp-row-head"><h3>Kyoto</h3><span class="cp-datepill">Dag 1–3 · 12–14 okt</span></div>
+            <p>Japans kejserliga huvudstad 794–1868 och landets kulturella hjärta, med över 1600 tempel och 400 helgedomar. Här finns några av Japans finaste zenträdgårdar och en oavbruten hantverkstradition som sträcker sig över tusen år.</p>
+            <a class="city-link" href="https://kyoto.travel/en">Kyoto City Tourism Association</a>
+          </div>
+        </div><a class="cp-node" style="top:118px; left:34px;" href="#d4">2</a>
+        <div class="cp-row" style="top:84px;">
+          <img src="https://commons.wikimedia.org/wiki/Special:FilePath/Osaka_Dotonbori_Ebisu_Bridge.jpg?width=200" alt="Osaka">
+          <div class="cp-row-body">
+            <div class="cp-row-head"><h3>Osaka</h3><span class="cp-datepill">Dag 4–5 · 15–16 okt</span></div>
+            <p>Japans tredje största stad — gatumat, neon och det livliga nöjesdistriktet Dotonbori. Tillsammans med Kyoto och Kobe bildar Osaka en storstadsregion med över 19 miljoner invånare.</p>
+            <a class="city-link" href="https://www.osaka-info.jp/en/">Osaka Convention & Tourism Bureau</a>
+          </div>
+        </div><a class="cp-node" style="top:210px; left:20px;" href="#d6">3</a>
+        <div class="cp-row" style="top:176px;">
+          <img src="https://commons.wikimedia.org/wiki/Special:FilePath/20190901_Kobe_harbor-1.jpg?width=200" alt="Kobe (och Ashiya)">
+          <div class="cp-row-body">
+            <div class="cp-row-head"><h3>Kobe (och Ashiya)</h3><span class="cp-datepill">Dag 6 · 17 okt</span></div>
+            <p>Hamnstad mellan Rokkobergen och havet, internationell sedan 1868 — känt för sitt nötkött och utsikten från bergen. Grannstaden Ashiya har länge lockat författare och konstnärer.</p>
+            <a class="city-link" href="https://www.feel-kobe.jp/en/">Visit Kobe</a>
+          </div>
+        </div><a class="cp-node" style="top:302px; left:34px;" href="#d6">4</a>
+        <div class="cp-row" style="top:268px;">
+          <img src="https://commons.wikimedia.org/wiki/Special:FilePath/Itsukushima_Shrine_Torii_Gate_(13890465459).jpg?width=200" alt="Hiroshima (och Miyajima)">
+          <div class="cp-row-body">
+            <div class="cp-row-head"><h3>Hiroshima (och Miyajima)</h3><span class="cp-datepill">Dag 6–7 · 17–18 okt</span></div>
+            <p>Fredsparken och Atombombskupolen (UNESCO) — men idag en levande, grön stad med spårvagnar. Strax utanför ligger den heliga ön Miyajima med sin "flytande" torii-portal.</p>
+            <a class="city-link" href="https://dive-hiroshima.com/en/">Hiroshima Tourism</a>
+          </div>
+        </div><a class="cp-node" style="top:394px; left:20px;" href="#d8">5</a>
+        <div class="cp-row" style="top:360px;">
+          <img src="https://commons.wikimedia.org/wiki/Special:FilePath/Odawara-jo.jpg?width=200" alt="Odawara / Mishima">
+          <div class="cp-row-body">
+            <div class="cp-row-head"><h3>Odawara / Mishima</h3><span class="cp-datepill">Dag 8 · 19 okt</span></div>
+            <p>Odawara var Hojoklanens borgstad och en station på gamla Tokaido-vägen. Kvällen tillbringas vid foten av Fuji i Mishima, känt för sina naturliga varma källor.</p>
+            <a class="city-link" href="https://www.odawara-guide.com/">Odawara Tourist Association</a>
+          </div>
+        </div><a class="cp-node" style="top:486px; left:34px;" href="#d9">6</a>
+        <div class="cp-row" style="top:452px;">
+          <img src="https://commons.wikimedia.org/wiki/Special:FilePath/Matsumoto_Castle_Keep_Tower.jpg?width=200" alt="Matsumoto">
+          <div class="cp-row-body">
+            <div class="cp-row-head"><h3>Matsumoto</h3><span class="cp-datepill">Dag 9–10 · 20–21 okt</span></div>
+            <p>Stad i Japanska alperna, känd för sin välbevarade svarta 1500-talsborg — en av endast tolv originalborgar i Japan. Även Yayoi Kusamas födelsestad, med gamla köpmanskvarter längs floden.</p>
+            <a class="city-link" href="https://visitmatsumoto.com/en/">Visit Matsumoto</a>
+          </div>
+        </div><a class="cp-node" style="top:578px; left:20px;" href="#d10">7</a>
+        <div class="cp-row" style="top:544px;">
+          <img src="https://commons.wikimedia.org/wiki/Special:FilePath/Karuizawa_-_Karuizawa6413.jpg?width=200" alt="Karuizawa">
+          <div class="cp-row-body">
+            <div class="cp-row-head"><h3>Karuizawa</h3><span class="cp-datepill">Dag 10–11 · 21–22 okt</span></div>
+            <p>Bergsort på ca 1000 meters höjd, sedan 1880-talet en populär sommarort för Tokyos överklass och utländska diplomater. Svalt klimat och gott om konstmuseer och gallerier.</p>
+            <a class="city-link" href="https://karuizawa-kankokyokai.jp/en/">Karuizawa Tourist Association</a>
+          </div>
+        </div><a class="cp-node" style="top:670px; left:34px;" href="#d12">8</a>
+        <div class="cp-row" style="top:636px;">
+          <img src="https://commons.wikimedia.org/wiki/Special:FilePath/Maebashi_Cityscape_Montage.jpg?width=200" alt="Maebashi">
+          <div class="cp-row-body">
+            <div class="cp-row-head"><h3>Maebashi</h3><span class="cp-datepill">Dag 12 · 23 okt</span></div>
+            <p>Huvudstad i Gunma-prefekturen, känd som "den gröna staden" utmed floden Tone. Har på senare år satsat medvetet på konst och arkitektur, med Shiroiya Hotel som draglok.</p>
+            <a class="city-link" href="https://www.visit-gunma.jp/en/">Visit Gunma</a>
+          </div>
+        </div><a class="cp-node" style="top:762px; left:20px;" href="#d13">9</a>
+        <div class="cp-row" style="top:728px;">
+          <img src="https://commons.wikimedia.org/wiki/Special:FilePath/Shibuya_Crossing,_Aerial.jpg?width=200" alt="Tokyo">
+          <div class="cp-row-body">
+            <div class="cp-row-head"><h3>Tokyo</h3><span class="cp-datepill">Dag 13–16 · 24–27 okt</span></div>
+            <p>Japans huvudstad och världens folkrikaste storstadsregion — en blandning av ultramodernt och traditionellt. Från Shibuyas neonkorsning till Asakusas gamla handelskvarter och lugna helgedomar mitt i myllret.</p>
+            <a class="city-link" href="https://www.gotokyo.org/en/">Go Tokyo</a>
+          </div>
+        </div><div style="height:808px;"></div></div>
+</div>
+</div>
+</div>
+
+<div class="day-page" id="d1">
+<div class="day-masthead"><span class="pub">Arkitektur &amp; Konst i Japan &middot; Reseguide 2026</span></div>
+<div class="day-hero">
+  <img src="https://commons.wikimedia.org/wiki/Special:FilePath/Kyoto,_Japan_(49667780482).jpg?width=1000" alt="Flyg till Kyoto">
+  <div class="day-hero-overlay"><div class="kicker">Dag 1–2 &nbsp;&middot;&nbsp; Kyoto &nbsp;&middot;&nbsp; 12–13 okt (mån–tis)</div></div>
+</div>
+<div class="day-hero-cap">Kyoto by night</div>
+<div class="day-headline-block">
+  <div class="day-headline">Flyg till Kyoto</div>
+  <div class="day-deck">Avresa från Sverige, ankomst till Japans forna huvudstad och en första kväll i lyktornas sken.</div>
+  <div class="day-rule"></div>
+</div>
+
+<div class="v2-columns">
+  <div class="v2-main">
+    <p class="lead">Resan börjar med flyg via Köpenhamn och Tokyo, med ankomst till Osaka på förmiddagen den 13 oktober, följt av busstransfer till Kyoto.</p>
+    <p>Eftersom ankomsten är så tidig är rummen inte klara direkt &ndash; bagaget lämnas därför på hotellet, och med samma buss fortsätter gruppen till restaurangen för en välkomstlunch. Därefter ett besök vid en av Kyotos stora sevärdheter, <a href="https://nijo-jocastle.city.kyoto.lg.jp/en/">Nijoborgen</a>, innan ni återvänder till hotellet för incheckning.</p>
+    <div class="stat-strip"><div class="stat-box"><span class="stat-icon">✈️</span><span class="stat-text">Flyg via Köpenhamn &amp; Tokyo</span></div><div class="stat-box"><span class="stat-icon">🍽️</span><span class="stat-text">Välkomstlunch</span></div><div class="stat-box"><span class="stat-icon">🏯</span><span class="stat-text">Nijoborgen</span></div></div>
+    
+        <div class="place-row">
+          <img src="https://commons.wikimedia.org/wiki/Special:FilePath/NinomaruPalace.jpg?width=600" alt="Nijoborgen">
+          <div class="place-info">
+            <h4>Nijoborgen</h4>
+            <div><a href="https://nijo-jocastle.city.kyoto.lg.jp/en/">Officiell sida</a><a href="https://www.google.com/maps/place/Nijo+Castle">Karta</a><a href="https://www.youtube.com/results?search_query=Nijo+Castle+Kyoto">YouTube</a></div>
+            <div class="exhibit-tag">Nytt inslag: tillagt i programmet eftersom hotellrummen inte är klara vid ankomst.</div>
+          </div>
+        </div>
+  </div>
+  <div class="essentials">
+    <div class="essentials-title">Essentials</div>
+    <ul class="timeline"><li><span class="time">Dag 1</span><span class="activity">Avresa Stockholm, via Köpenhamn till Tokyo</span></li><li><span class="time">Dag 2</span><span class="activity">Anslutning till Osaka, bagage lämnas på hotellet</span></li><li><span class="time">Lunch</span><span class="activity">Välkomstlunch</span></li><li><span class="time">Eftermiddag</span><span class="activity">Nijoborgen</span></li><li><span class="time">Kväll</span><span class="activity">Incheckning på hotellet</span></li></ul>
+    <div class="map-frame" style="height:76px; page-break-inside:avoid;"><div id="leaflet-d1" style="width:100%; height:100%;"></div></div>
+    <div class="flight-box">
+          <div class="flight-box-title">Flyginformation &middot; Utresa</div>
+          <div class="flight-row"><b>SK403</b><span class="flight-route">Stockholm &rarr; Köpenhamn</span><span class="flight-time">12 okt &middot; 09:00–10:10</span></div>
+          <div class="flight-row"><b>SK983</b><span class="flight-route">Köpenhamn &rarr; Tokyo</span><span class="flight-time">12 okt &middot; 12:45–07:55 (ank. 13 okt)</span></div>
+          <div class="flight-row"><b>NH019</b><span class="flight-route">Tokyo &rarr; Osaka</span><span class="flight-time">13 okt &middot; 10:00–11:05</span></div>
+        </div>
+        
+        <div class="hotel-box">
+          <div class="hotel-box-title">Hotell i natt</div>
+          <div class="hotel-box-name">Solaria Nishitetsu Hotel Kyoto</div>
+          <div style="font-size:8pt; color:var(--ink-soft); margin-bottom:4px;">509 Kamiosakacho, Kiyamachi-dori Sanjo-agaru, Kyoto &middot; Tel: +81 75-708-5757</div>
+          <a class="city-link" href="https://solaria-kyoto.nnr-h.com/">Solaria Nishitetsu Hotel Kyoto</a>
+        </div>
+        
+    
+    <div class="notes-box">
+      <div class="notes-box-title">Mina anteckningar</div>
+      
+        <div class="notes-row">
+          <div class="notes-label">🛍 Shopping</div>
+          <div class="notes-rule" contenteditable="true" data-placeholder="Skriv egna tips eller platser att besöka...">&nbsp;</div>
+        </div>
+      
+        <div class="notes-row">
+          <div class="notes-label">🍜 Restauranger</div>
+          <div class="notes-rule" contenteditable="true" data-placeholder="Skriv egna tips eller bokningar...">&nbsp;</div>
+        </div>
+      
+        <div class="notes-row">
+          <div class="notes-label">✨ Aktiviteter</div>
+          <div class="notes-rule" contenteditable="true" data-placeholder="Övrigt att göra eller komma ihåg...">&nbsp;</div>
+        </div>
+    </div>
+    
+  </div>
+</div>
+<div class="day-footer"><span>Arkitektur &amp; Konst i Japan</span><span>Dag 1–2 av 16</span></div></div>
+<div class="day-page" id="d3">
+<div class="day-masthead"><span class="pub">Arkitektur &amp; Konst i Japan &middot; Reseguide 2026</span></div>
+<div class="day-hero">
+  <img src="https://commons.wikimedia.org/wiki/Special:FilePath/Ginkakuji_Kyoto03-r.jpg?width=1400" alt="Ohara & Silverpaviljongen">
+  <div class="day-hero-overlay"><div class="kicker">Dag 3 &nbsp;&middot;&nbsp; Kyoto &nbsp;&middot;&nbsp; 14 okt (ons)</div></div>
+</div>
+<div class="day-hero-cap">Ginkaku-ji, Silverpaviljongen — Higashiyama, Kyoto</div>
+<div class="day-headline-block">
+  <div class="day-headline">Ohara & Silverpaviljongen</div>
+  <div class="day-deck">En dag i zenbuddhismens tecken: mossbeklädda tempelträdgårdar, en filosofs promenadstig och skymning över Kyotos gamla nöjeskvarter.</div>
+  <div class="day-rule"></div>
+</div>
+
+<div class="v1-columns">
+  <div class="v1-main">
+    <p class="lead">Dagen ägnas åt zenbuddhismens estetik i norra Higashiyama. Med egen buss åker gruppen först till Ohara, en lantlig dal ca 30 minuters bussfärd utanför centrala Kyoto, med besök vid Sanzen-in och dess berömda mossträdgård med leende Jizo-statyer, en av de mest fotograferade platserna i regionen.</p>
+    <p>Därefter Ginkaku-ji (Silverpaviljongen), en av Kyotos vackraste zenträdgårdar från 1400-talet, följt av en promenad längs Filosofernas allé till tempelklustret Nanzen-ji.</p>
+    <div class="pullquote">&ldquo;Trädgården vid Sanzen-in andas en stillhet som är svår att hitta någon annanstans i Kyoto.&rdquo;</div>
+    <p>Dagen avslutas vid Kyocera Museum of Art och dess nya tillbyggnad Higashiyama Cube. Kvällen är fri — ett fint tillfälle att på egen hand utforska de historiska kvarteren Gion och Ponto-cho.</p>
+    
+        <div class="place-row">
+          <img src="https://commons.wikimedia.org/wiki/Special:FilePath/Sanzen'in_01.JPG?width=600" alt="Sanzen-in (Ohara)">
+          <div class="place-info">
+            <h4>Sanzen-in (Ohara)</h4>
+            <div><a href="https://www.sanzenin.or.jp/en/">Officiell sida</a><a href="https://www.google.com/maps/place/Sanzen-in">Karta</a><a href="https://www.youtube.com/results?search_query=Sanzen-in+Ohara+moss+garden">YouTube</a></div>
+            
+          </div>
+        </div>
+        <div class="place-row">
+          <img src="https://commons.wikimedia.org/wiki/Special:FilePath/Ginkakuji_Kyoto03-r.jpg?width=600" alt="Ginkaku-ji (Silverpaviljongen)">
+          <div class="place-info">
+            <h4>Ginkaku-ji (Silverpaviljongen)</h4>
+            <div><a href="https://www.shokoku-ji.jp/en/ginkakuji/">Officiell sida</a><a href="https://www.google.com/maps/place/Ginkaku-ji">Karta</a><a href="https://www.youtube.com/results?search_query=Ginkaku-ji+Silver+Pavilion+Kyoto">YouTube</a></div>
+            
+          </div>
+        </div>
+        <div class="place-row">
+          <img src="https://commons.wikimedia.org/wiki/Special:FilePath/Kyoto_Municipal_Museum_of_Art_1933_%E2%85%B1.jpg?width=600" alt="Kyocera Museum of Art">
+          <div class="place-info">
+            <h4>Kyocera Museum of Art</h4>
+            <div><a href="https://kyotocity-kyocera.museum/en/">Info</a><a href="https://zen-ghibli.jp/kyoto/">Utställningssida</a></div>
+            <div class="exhibit-tag">Utställningen "Zen och Ghibli" (3 okt–6 dec 2026) — täcker vårt besök.</div>
+          </div>
+        </div>
+  </div>
+  <div class="essentials">
+    <div class="essentials-title">Essentials</div>
+    <ul class="timeline"><li><span class="time">Förmiddag</span><span class="activity">Egen buss till Ohara (ca 30 min) – Sanzen-in</span></li><li><span class="time">Mitt på dagen</span><span class="activity">Ginkaku-ji & Filosofernas allé (ca 2 km) till Nanzen-ji</span></li><li><span class="time">Eftermiddag</span><span class="activity">Kyocera Museum of Art</span></li><li class="free"><span class="time">Kväll</span><span class="activity">Fri tid i Gion & Ponto-cho</span></li></ul>
+    <div class="map-frame" style="height:76px; page-break-inside:avoid;"><div id="leaflet-d3" style="width:100%; height:100%;"></div></div>
+    
+        <div class="hotel-box">
+          <div class="hotel-box-title">Hotell i natt</div>
+          <div class="hotel-box-name">Solaria Nishitetsu Hotel Kyoto</div>
+          <div style="font-size:8pt; color:var(--ink-soft); margin-bottom:4px;">509 Kamiosakacho, Kiyamachi-dori Sanjo-agaru, Kyoto &middot; Tel: +81 75-708-5757</div>
+          <a class="city-link" href="https://solaria-kyoto.nnr-h.com/">Solaria Nishitetsu Hotel Kyoto</a>
+        </div>
+        
+    
+    <div class="notes-box">
+      <div class="notes-box-title">Mina anteckningar</div>
+      
+        <div class="notes-row">
+          <div class="notes-label">🛍 Shopping</div>
+          <div class="notes-rule" contenteditable="true" data-placeholder="Skriv egna tips eller platser att besöka...">&nbsp;</div>
+        </div>
+      
+        <div class="notes-row">
+          <div class="notes-label">🍜 Restauranger</div>
+          <div class="notes-rule" contenteditable="true" data-placeholder="Skriv egna tips eller bokningar...">&nbsp;</div>
+        </div>
+      
+        <div class="notes-row">
+          <div class="notes-label">✨ Aktiviteter</div>
+          <div class="notes-rule" contenteditable="true" data-placeholder="Övrigt att göra eller komma ihåg...">&nbsp;</div>
+        </div>
+    </div>
+    
+  </div>
+</div>
+<div class="day-footer"><span>Arkitektur &amp; Konst i Japan</span><span>Dag 3 av 16</span></div></div>
+<div class="day-page" id="d4">
+<div class="day-masthead"><span class="pub">Arkitektur &amp; Konst i Japan &middot; Reseguide 2026</span></div>
+<div class="day-hero">
+  <img src="https://commons.wikimedia.org/wiki/Special:FilePath/Miho_museum02n3872.jpg?width=1400" alt="Sagawa & MIHO Museum">
+  <div class="day-hero-overlay"><div class="kicker">Dag 4 &nbsp;&middot;&nbsp; Shiga → Osaka &nbsp;&middot;&nbsp; 15 okt (tor)</div></div>
+</div>
+<div class="day-hero-cap">MIHO Museum, Shigaraki</div>
+<div class="day-headline-block">
+  <div class="day-headline">Sagawa & MIHO Museum</div>
+  <div class="day-deck">Från Biwasjöns stränder till ett museum inbyggt i berget — en dag om konst i harmoni med naturen.</div>
+  <div class="day-rule"></div>
+</div>
+
+
+<div class="v3-map-banner">
+  <div class="v3-map-label">📍 Dagens karta</div>
+  <div class="map-frame" style="height:76px;"><div id="leaflet-d4" style="width:100%; height:100%;"></div></div>
+</div>
+<div class="v3-columns">
+  <div class="v3-main">
+    <p class="lead">Gruppen lämnar Kyoto med egen buss och åker till Shigalänet. Först Sagawa Art Museum vid Biwasjön, med bl.a. Ikuo Hirayamas måleri, Sato Churyos 40 bronsskulpturer och Raku-familjens teskålar.</p>
+    <p>En kort bussresa vidare till den vackra gamla trästaden Omi-Hachiman med sina kanaler, där gruppen promenerar och äter lunch. Därefter ett av världens främsta museer: MIHO Museum, ritat av I.M. Pei och till stor del inbyggt i berget i Shigaraki nationalpark — en samling skatter från Sidenvägen i harmoni med naturen. Sen eftermiddag ankomst Osaka, där vi bor två nätter.</p>
+    
+        <div class="place-row">
+          <img src="https://commons.wikimedia.org/wiki/Special:FilePath/Sagawa_art_museum01s3200.jpg?width=600" alt="Sagawa Art Museum">
+          <div class="place-info">
+            <h4>Sagawa Art Museum</h4>
+            <div><a href="https://www.sagawa-artmuseum.or.jp/en/">Officiell sida</a><a href="https://www.sagawa-artmuseum.or.jp/plan/exhibition/">Utställningssida</a></div>
+            <div class="exhibit-tag">"Léonard Foujita – 7 passioner", till 140-årsminnet av konstnärens födelse (17 sep–23 nov 2026) – täcker vårt besök. Museet återöppnade i juli 2026 efter en längre ombyggnad.</div>
+          </div>
+        </div>
+        <div class="place-row">
+          <img src="https://commons.wikimedia.org/wiki/Special:FilePath/Miho_museum02n3872.jpg?width=600" alt="MIHO Museum">
+          <div class="place-info">
+            <h4>MIHO Museum</h4>
+            <div><a href="https://www.miho.jp/en/">Officiell sida</a><a href="https://www.google.com/maps/place/MIHO+MUSEUM">Karta</a><a href="https://www.youtube.com/results?search_query=MIHO+Museum+I.M.+Pei+Shigaraki">YouTube</a></div>
+            <div class="exhibit-tag">Höstprogrammet var inte publicerat vid research-tillfället (sommarens utställning slutar 30 aug) – kontrollera aktuell utställning närmare avresa.</div>
+          </div>
+        </div>
+        <div class="place-row">
+          <img src="https://commons.wikimedia.org/wiki/Special:FilePath/Flickr_-_yeowatzup_-_Mount_Hachiman%2C_Omihachiman%2C_Shiga%2C_Japan.jpg?width=600" alt="Omi-Hachiman">
+          <div class="place-info">
+            <h4>Omi-Hachiman</h4>
+            <div><a href="https://www.google.com/maps/place/Omihachiman">Karta</a><a href="https://www.youtube.com/results?search_query=Omihachiman+canals+Shiga">YouTube</a></div>
+            <div class="exhibit-tag">Promenad och lunch – gammal handels- och samurajstad med träarkitektur och kanaler.</div>
+          </div>
+        </div>
+  </div>
+  <div class="v3-side">
+    <div class="essentials-title">Dagens gång</div>
+    <ul class="timeline"><li><span class="time">Förmiddag</span><span class="activity">Egen buss Kyoto → Sagawa Art Museum</span></li><li><span class="time">Lunch</span><span class="activity">Promenad och lunch i Omi-Hachiman</span></li><li><span class="time">Eftermiddag</span><span class="activity">MIHO Museum</span></li><li><span class="time">Kväll</span><span class="activity">Ankomst Osaka</span></li></ul>
+    
+        <div class="hotel-box">
+          <div class="hotel-box-title">Hotell i natt</div>
+          <div class="hotel-box-name">Hotel Monterey Grasmere Osaka</div>
+          <div style="font-size:8pt; color:var(--ink-soft); margin-bottom:4px;">Minatomachi 1-2-3, Naniwa-ku, Osaka &middot; Tel: +81 6-6645-7111</div>
+          <a class="city-link" href="https://www.hotelmonterey.co.jp/en/grasmere_osaka/">Hotel Monterey Grasmere</a>
+        </div>
+        
+    
+    <div class="notes-box">
+      <div class="notes-box-title">Mina anteckningar</div>
+      
+        <div class="notes-row">
+          <div class="notes-label">🛍 Shopping</div>
+          <div class="notes-rule" contenteditable="true" data-placeholder="Skriv egna tips eller platser att besöka...">&nbsp;</div>
+        </div>
+      
+        <div class="notes-row">
+          <div class="notes-label">🍜 Restauranger</div>
+          <div class="notes-rule" contenteditable="true" data-placeholder="Skriv egna tips eller bokningar...">&nbsp;</div>
+        </div>
+      
+        <div class="notes-row">
+          <div class="notes-label">✨ Aktiviteter</div>
+          <div class="notes-rule" contenteditable="true" data-placeholder="Övrigt att göra eller komma ihåg...">&nbsp;</div>
+        </div>
+    </div>
+    
+  </div>
+</div>
+<div class="day-footer"><span>Arkitektur &amp; Konst i Japan</span><span>Dag 4 av 16</span></div></div>
+<div class="day-page" id="d5">
+<div class="day-masthead"><span class="pub">Arkitektur &amp; Konst i Japan &middot; Reseguide 2026</span></div>
+<div class="day-hero">
+  <img src="https://commons.wikimedia.org/wiki/Special:FilePath/Osaka_Dotonbori_Ebisu_Bridge.jpg?width=1000" alt="Osaka">
+  <div class="day-hero-overlay"><div class="kicker">Dag 5 &nbsp;&middot;&nbsp; Osaka &nbsp;&middot;&nbsp; 16 okt (fre)</div></div>
+</div>
+<div class="day-hero-cap">Dotonbori, Osaka</div>
+<div class="day-headline-block">
+  <div class="day-headline">Osaka</div>
+  <div class="day-deck">Neonljus, gatumat och digital konst — en dag i Japans mest avslappnade storstad.</div>
+  <div class="day-rule"></div>
+</div>
+
+<div class="v2-columns">
+  <div class="v2-main">
+    <p class="lead">Dagen inleds med en gemensam stadsvandring i Namba, Osakas hjärta: ungdomliga Amerika-mura, Japans kanske mest folktäta arkader och det neonupplysta nöjesdistriktet Dotonbori.</p>
+    <p>Vidare till Nakanoshima (”Mittemellanön”) mellan stadens två hubbar Umeda och Namba, där vi besöker National Museum of Art. Vid skymning besöks teamLabs ljusinstallationer i Botaniska trädgården.</p>
+    <div class="stat-strip"><div class="stat-box"><span class="stat-icon">🍜</span><span class="stat-text">Stadsvandring: Namba &amp; Dotonbori</span></div><div class="stat-box"><span class="stat-icon">🖼️</span><span class="stat-text">National Museum of Art</span></div><div class="stat-box"><span class="stat-icon">✨</span><span class="stat-text">teamLab kvällstid</span></div></div>
+    
+        <div class="place-row">
+          <img src="https://commons.wikimedia.org/wiki/Special:FilePath/The_National_Museum_of_Art,_Osaka_2026.jpg?width=600" alt="National Museum of Art, Osaka">
+          <div class="place-info">
+            <h4>National Museum of Art, Osaka</h4>
+            <div><a href="https://www.nmao.go.jp/en/">Officiell sida</a><a href="https://www.nmao.go.jp/events/event/collection20260719/">Utställningssida</a></div>
+            <div class="exhibit-tag">50-årsjubileum: "Collection 1 – Jag/Handling" (19 jul–3 nov 2026) med Foujita, Kusama, Ruth Asawa och Gutai-rörelsen – täcker vårt besök. Separat utställning med Aki Sasamotos installationer.</div>
+          </div>
+        </div>
+        <div class="place-row">
+          <img src="https://commons.wikimedia.org/wiki/Special:FilePath/Forest_of_metasequoia_glyptostroboides_at_Nagai_Botanical_Garden,_February_2024_-_8010.jpg?width=600" alt="teamLab Botanical Garden">
+          <div class="place-info">
+            <h4>teamLab Botanical Garden</h4>
+            <div><a href="https://www.teamlab.art/e/botanicalgarden/">Officiell sida</a></div>
+            
+          </div>
+        </div>
+  </div>
+  <div class="essentials">
+    <div class="essentials-title">Essentials</div>
+    <ul class="timeline"><li><span class="time">Förmiddag</span><span class="activity">Gemensam stadsvandring: Namba & Dotonbori</span></li><li><span class="time">Eftermiddag</span><span class="activity">National Museum of Art, Nakanoshima</span></li><li><span class="time">Skymning</span><span class="activity">teamLab, Botaniska trädgården</span></li></ul>
+    <div class="map-frame" style="height:76px; page-break-inside:avoid;"><div id="leaflet-d5" style="width:100%; height:100%;"></div></div>
+    
+        <div class="hotel-box">
+          <div class="hotel-box-title">Hotell i natt</div>
+          <div class="hotel-box-name">Hotel Monterey Grasmere Osaka</div>
+          <div style="font-size:8pt; color:var(--ink-soft); margin-bottom:4px;">Minatomachi 1-2-3, Naniwa-ku, Osaka &middot; Tel: +81 6-6645-7111</div>
+          <a class="city-link" href="https://www.hotelmonterey.co.jp/en/grasmere_osaka/">Hotel Monterey Grasmere</a>
+        </div>
+        
+    
+    <div class="notes-box">
+      <div class="notes-box-title">Mina anteckningar</div>
+      
+        <div class="notes-row">
+          <div class="notes-label">🛍 Shopping</div>
+          <div class="notes-rule" contenteditable="true" data-placeholder="Skriv egna tips eller platser att besöka...">&nbsp;</div>
+        </div>
+      
+        <div class="notes-row">
+          <div class="notes-label">🍜 Restauranger</div>
+          <div class="notes-rule" contenteditable="true" data-placeholder="Skriv egna tips eller bokningar...">&nbsp;</div>
+        </div>
+      
+        <div class="notes-row">
+          <div class="notes-label">✨ Aktiviteter</div>
+          <div class="notes-rule" contenteditable="true" data-placeholder="Övrigt att göra eller komma ihåg...">&nbsp;</div>
+        </div>
+    </div>
+    
+  </div>
+</div>
+<div class="day-footer"><span>Arkitektur &amp; Konst i Japan</span><span>Dag 5 av 16</span></div></div>
+<div class="day-page" id="d6">
+<div class="day-masthead"><span class="pub">Arkitektur &amp; Konst i Japan &middot; Reseguide 2026</span></div>
+<div class="day-hero">
+  <img src="https://commons.wikimedia.org/wiki/Special:FilePath/Yamamura_house07n4272.jpg?width=1400" alt="Frank Lloyd Wright & Tadao Ando">
+  <div class="day-hero-overlay"><div class="kicker">Dag 6 &nbsp;&middot;&nbsp; Kobe → Hiroshima &nbsp;&middot;&nbsp; 17 okt (lör)</div></div>
+</div>
+<div class="day-hero-cap">Yodoko Guest House, Ashiya</div>
+<div class="day-headline-block">
+  <div class="day-headline">Frank Lloyd Wright & Tadao Ando</div>
+  <div class="day-deck">Från ett amerikanskt mästerverk i Ashiya till bergstoppens vindpinade kyrka, innan superexpressen österut.</div>
+  <div class="day-rule"></div>
+</div>
+
+
+<div class="v3-map-banner">
+  <div class="v3-map-label">📍 Dagens karta</div>
+  <div class="map-frame" style="height:76px;"><div id="leaflet-d6" style="width:100%; height:100%;"></div></div>
+</div>
+<div class="v3-columns">
+  <div class="v3-main">
+    <p class="lead">Med egen buss till Ashiya, en förstad till Kobe, och Yodoko Guest House — Frank Lloyd Wrights enda bevarade bostadshus i Japan (1918/1924).</p>
+    <p>Därefter upp på Mt Rokko för konstevenemanget Kobe Rokko Meets Art, där bland annat Tadao Andos "Vindens kyrka" (normalt stängd, men öppen under denna period) och Hiroshi Sambuichis observatorium Rokko Shidare besöks. Sen eftermiddag Shinkansen från Shin-Kobe till Hiroshima — tågresan tar en dryg timme.</p>
+    <p><b>Bagage:</b> det stora bagaget skickas separat från Osaka till Hiroshima denna dag. Ta med en liten väska med det du behöver för en övernattning.</p>
+    
+        <div class="place-row">
+          <img src="https://commons.wikimedia.org/wiki/Special:FilePath/Yamamura_house03s3200.jpg?width=600" alt="Yodoko Guest House">
+          <div class="place-info">
+            <h4>Yodoko Guest House</h4>
+            <div><a href="https://www.yodoko-geihinkan.jp/en/">Officiell sida</a><a href="https://www.google.com/maps/place/Yodoko+Guest+House">Karta</a><a href="https://www.youtube.com/results?search_query=Frank+Lloyd+Wright+Yodoko+Guest+House+Ashiya">YouTube</a></div>
+            
+          </div>
+        </div>
+        <div class="place-row">
+          <img src="https://commons.wikimedia.org/wiki/Special:FilePath/Mt_rokko01s2816.jpg?width=600" alt="Mt Rokko / Rokko Shidare Observatory">
+          <div class="place-info">
+            <h4>Mt Rokko / Rokko Shidare Observatory</h4>
+            <div><a href="https://www.rokkosan.com/shidare/en/">Info</a><a href="https://www.youtube.com/results?search_query=Tadao+Ando+Church+of+the+Wind+Rokko">YouTube</a></div>
+            
+          </div>
+        </div>
+  </div>
+  <div class="v3-side">
+    <div class="essentials-title">Dagens gång</div>
+    <ul class="timeline"><li><span class="time">Förmiddag</span><span class="activity">Egen buss till Ashiya – Yodoko Guest House</span></li><li><span class="time">Eftermiddag</span><span class="activity">Mt Rokko – Kobe Rokko Meets Art</span></li><li><span class="time">Sen eftermiddag</span><span class="activity">Shinkansen Shin-Kobe → Hiroshima (ca 1 tim)</span></li><li><span class="time">Bagage</span><span class="activity">Stora väskan skickas separat Osaka → Hiroshima</span></li></ul>
+    
+        <div class="hotel-box">
+          <div class="hotel-box-title">Hotell i natt</div>
+          <div class="hotel-box-name">Hotel Intergate Hiroshima</div>
+          <div style="font-size:8pt; color:var(--ink-soft); margin-bottom:4px;">Teppo-cho 5-16, Naka-ku, Hiroshima &middot; Tel: +81 82-224-6110</div>
+          <a class="city-link" href="https://www.intergatehotels.jp/hiroshima/en/">Hotel Intergate Hiroshima</a>
+        </div>
+        
+    
+    <div class="notes-box">
+      <div class="notes-box-title">Mina anteckningar</div>
+      
+        <div class="notes-row">
+          <div class="notes-label">🛍 Shopping</div>
+          <div class="notes-rule" contenteditable="true" data-placeholder="Skriv egna tips eller platser att besöka...">&nbsp;</div>
+        </div>
+      
+        <div class="notes-row">
+          <div class="notes-label">🍜 Restauranger</div>
+          <div class="notes-rule" contenteditable="true" data-placeholder="Skriv egna tips eller bokningar...">&nbsp;</div>
+        </div>
+      
+        <div class="notes-row">
+          <div class="notes-label">✨ Aktiviteter</div>
+          <div class="notes-rule" contenteditable="true" data-placeholder="Övrigt att göra eller komma ihåg...">&nbsp;</div>
+        </div>
+    </div>
+    
+  </div>
+</div>
+<div class="day-footer"><span>Arkitektur &amp; Konst i Japan</span><span>Dag 6 av 16</span></div></div>
+<div class="day-page" id="d7">
+<div class="day-masthead"><span class="pub">Arkitektur &amp; Konst i Japan &middot; Reseguide 2026</span></div>
+<div class="day-hero">
+  <img src="https://commons.wikimedia.org/wiki/Special:FilePath/Itsukushima_Shrine_Torii_Gate_(13890465459).jpg?width=1400" alt="Miyajima & Fredsparken">
+  <div class="day-hero-overlay"><div class="kicker">Dag 7 &nbsp;&middot;&nbsp; Hiroshima &nbsp;&middot;&nbsp; 18 okt (sön)</div></div>
+</div>
+<div class="day-hero-cap">Itsukushima-helgedomen, Miyajima</div>
+<div class="day-headline-block">
+  <div class="day-headline">Miyajima & Fredsparken</div>
+  <div class="day-deck">Ett flytande museum, en flytande torii-portal — en dag mellan konst, hav och historia.</div>
+  <div class="day-rule"></div>
+</div>
+
+<div class="v1-columns">
+  <div class="v1-main">
+    <p class="lead">Med egen buss till Simose Art Museum, invigt 2023 och ritat av Shigeru Ban — utsett till "världens vackraste museum" i Prix Versailles 2024, med åtta flytande, färgglada utställningssalar.</p>
+    <p>Vidare till Miyajimas färjeterminal och båt ut till den heliga ön Miyajima och Itsukushima-helgedomen med sin berömda "flytande" torii-portal i kamferträ. Det finns tid att promenera på öns naturstigar.</p>
+    <div class="pullquote">&ldquo;En flytande portal, en flytande museibyggnad — Hiroshimadagen handlar om saker som ser ut att sväva.&rdquo;</div>
+    <p>Därefter en annan båt hela vägen in till centrala Hiroshima genom kanalerna, med avstigning vid Fredsparken. Besök vid Orizuru Tower: hiss upp till observationsdäcket och en 450 meter lång spiraltrappa ner förbi målade väggar och en multimediautställning på 12:e våningen. Kvällen är fri för egen utforskning av Fredsparken.</p>
+    
+        <div class="place-row">
+          <img src="https://commons.wikimedia.org/wiki/Special:FilePath/Shimose_art_museum_1.jpg?width=600" alt="Simose Art Museum">
+          <div class="place-info">
+            <h4>Simose Art Museum</h4>
+            <div><a href="https://www.simose-museum.jp/en/">Officiell sida</a><a href="https://www.youtube.com/results?search_query=Simose+Art+Museum+Shigeru+Ban">YouTube</a></div>
+            
+          </div>
+        </div>
+        <div class="place-row">
+          <img src="https://commons.wikimedia.org/wiki/Special:FilePath/Itsukushima_Shrine_Torii_Gate_(13890465459).jpg?width=600" alt="Itsukushima-helgedomen (Miyajima)">
+          <div class="place-info">
+            <h4>Itsukushima-helgedomen (Miyajima)</h4>
+            <div><a href="https://itsukushimajinja.jp/en/">Officiell sida</a><a href="https://www.google.com/maps/place/Itsukushima+Shrine">Karta</a><a href="https://www.youtube.com/results?search_query=Miyajima+floating+torii+Itsukushima">YouTube</a></div>
+            
+          </div>
+        </div>
+        <div class="place-row">
+          <img src="https://commons.wikimedia.org/wiki/Special:FilePath/Hiroshima_MAZDA_Otemachi_BLD_20160717-1.JPG?width=600" alt="Orizuru Tower">
+          <div class="place-info">
+            <h4>Orizuru Tower</h4>
+            <div><a href="https://www.orizurutower.jp/en/">Officiell sida</a></div>
+            
+          </div>
+        </div>
+  </div>
+  <div class="essentials">
+    <div class="essentials-title">Essentials</div>
+    <ul class="timeline"><li><span class="time">Förmiddag</span><span class="activity">Egen buss till Simose Art Museum</span></li><li><span class="time">Eftermiddag</span><span class="activity">Båt till Miyajima / Itsukushima-helgedomen</span></li><li><span class="time">Eftermiddag</span><span class="activity">Båt genom kanalerna in till Fredsparken</span></li><li><span class="time">Kväll</span><span class="activity">Orizuru Tower</span></li><li class="free"><span class="time">Kväll</span><span class="activity">Fri tid: Fredsparken</span></li></ul>
+    <div class="map-frame" style="height:76px; page-break-inside:avoid;"><div id="leaflet-d7" style="width:100%; height:100%;"></div></div>
+    
+        <div class="hotel-box">
+          <div class="hotel-box-title">Hotell i natt</div>
+          <div class="hotel-box-name">Hotel Intergate Hiroshima</div>
+          <div style="font-size:8pt; color:var(--ink-soft); margin-bottom:4px;">Teppo-cho 5-16, Naka-ku, Hiroshima &middot; Tel: +81 82-224-6110</div>
+          <a class="city-link" href="https://www.intergatehotels.jp/hiroshima/en/">Hotel Intergate Hiroshima</a>
+        </div>
+        
+    
+    <div class="notes-box">
+      <div class="notes-box-title">Mina anteckningar</div>
+      
+        <div class="notes-row">
+          <div class="notes-label">🛍 Shopping</div>
+          <div class="notes-rule" contenteditable="true" data-placeholder="Skriv egna tips eller platser att besöka...">&nbsp;</div>
+        </div>
+      
+        <div class="notes-row">
+          <div class="notes-label">🍜 Restauranger</div>
+          <div class="notes-rule" contenteditable="true" data-placeholder="Skriv egna tips eller bokningar...">&nbsp;</div>
+        </div>
+      
+        <div class="notes-row">
+          <div class="notes-label">✨ Aktiviteter</div>
+          <div class="notes-rule" contenteditable="true" data-placeholder="Övrigt att göra eller komma ihåg...">&nbsp;</div>
+        </div>
+    </div>
+    
+  </div>
+</div>
+<div class="day-footer"><span>Arkitektur &amp; Konst i Japan</span><span>Dag 7 av 16</span></div></div>
+<div class="day-page" id="d8">
+<div class="day-masthead"><span class="pub">Arkitektur &amp; Konst i Japan &middot; Reseguide 2026</span></div>
+<div class="day-hero">
+  <img src="https://commons.wikimedia.org/wiki/Special:FilePath/Enoura_Observatory_02.jpg?width=1400" alt="Enoura Observatory">
+  <div class="day-hero-overlay"><div class="kicker">Dag 8 &nbsp;&middot;&nbsp; Odawara/Mishima &nbsp;&middot;&nbsp; 19 okt (mån)</div></div>
+</div>
+<div class="day-hero-cap">Enoura Observatory, Odawara Art Foundation</div>
+<div class="day-headline-block">
+  <div class="day-headline">Enoura Observatory</div>
+  <div class="day-deck">Hiroshi Sugimotos meditativa landskap av sten, ljus och horisont — följt av kvällens heta källor i Mishima.</div>
+  <div class="day-rule"></div>
+</div>
+
+<div class="v1-columns">
+  <div class="v1-main">
+    <p class="lead">På morgonen Shinkansen 75 mil österut till Odawara — tågresan tar cirka tre och en halv timme. Efter lunch på stationen går bussen till Enoura Observatory (Odawara Art Foundation), ett meditativt konst- och landskapsprojekt skapat av fotografen/konstnären Hiroshi Sugimoto.</p>
+    <p>Anläggningen rymmer ett 100 meter långt galleri, en stenträdgård och en samurajport, allt i noggrant komponerad dialog med horisonten och havet. Platsen tar bara emot förbokade besök i små grupper.</p>
+    <div class="pullquote">&ldquo;Sugimoto komponerade hela anläggningen kring en enda linje: horisonten, sedd genom sten, glas och tid.&rdquo;</div>
+    <p>Därefter en vacker bussresa längs Sagamikusten till onsen-hotellet i Mishima, med Fuji-utsikt och både inom- och utomhusbad. Kvällen är fri för avkoppling i de heta källorna innan middagen.</p>
+    
+        <div class="place-row">
+          <img src="https://commons.wikimedia.org/wiki/Special:FilePath/Enoura_Observatory_03.jpg?width=600" alt="Enoura Observatory (Odawara Art Foundation)">
+          <div class="place-info">
+            <h4>Enoura Observatory (Odawara Art Foundation)</h4>
+            <div><a href="https://www.odawara-af.com/en/enoura/">Officiell sida</a><a href="https://www.google.com/maps/place/Enoura+Observatory">Karta</a><a href="https://www.youtube.com/results?search_query=Enoura+Observatory+Hiroshi+Sugimoto">YouTube</a></div>
+            
+          </div>
+        </div>
+  </div>
+  <div class="essentials">
+    <div class="essentials-title">Essentials</div>
+    <ul class="timeline"><li><span class="time">Morgon</span><span class="activity">Shinkansen till Odawara (75 mil, ca 3,5 tim)</span></li><li><span class="time">Lunch</span><span class="activity">Lunch på stationen i Odawara</span></li><li><span class="time">Eftermiddag</span><span class="activity">Buss till Enoura Observatory</span></li><li><span class="time">Sen eftermiddag</span><span class="activity">Buss längs Sagamikusten till Mishima</span></li><li class="free"><span class="time">Kväll</span><span class="activity">Onsen-avkoppling innan middagen</span></li></ul>
+    <div class="map-frame" style="height:76px; page-break-inside:avoid;"><div id="leaflet-d8" style="width:100%; height:100%;"></div></div>
+    
+        <div class="hotel-box">
+          <div class="hotel-box-title">Hotell i natt</div>
+          <div class="hotel-box-name">Fujisan Mishima Tokyu Hotel</div>
+          <div style="font-size:8pt; color:var(--ink-soft); margin-bottom:4px;">Ichibancho 17-1, Mishima &middot; Tel: +81 55-991-0109</div>
+          <a class="city-link" href="https://www.tokyuhotels.co.jp/en/mishima-h/spa/index.html">Fujisan Mishima Tokyu Hotel</a>
+        </div>
+        
+    
+    <div class="notes-box">
+      <div class="notes-box-title">Mina anteckningar</div>
+      
+        <div class="notes-row">
+          <div class="notes-label">🛍 Shopping</div>
+          <div class="notes-rule" contenteditable="true" data-placeholder="Skriv egna tips eller platser att besöka...">&nbsp;</div>
+        </div>
+      
+        <div class="notes-row">
+          <div class="notes-label">🍜 Restauranger</div>
+          <div class="notes-rule" contenteditable="true" data-placeholder="Skriv egna tips eller bokningar...">&nbsp;</div>
+        </div>
+      
+        <div class="notes-row">
+          <div class="notes-label">✨ Aktiviteter</div>
+          <div class="notes-rule" contenteditable="true" data-placeholder="Övrigt att göra eller komma ihåg...">&nbsp;</div>
+        </div>
+    </div>
+    
+  </div>
+</div>
+<div class="day-footer"><span>Arkitektur &amp; Konst i Japan</span><span>Dag 8 av 16</span></div></div>
+<div class="day-page" id="d9">
+<div class="day-masthead"><span class="pub">Arkitektur &amp; Konst i Japan &middot; Reseguide 2026</span></div>
+<div class="day-hero">
+  <img src="https://commons.wikimedia.org/wiki/Special:FilePath/Lake_Motosu03.jpg?width=1400" alt="Mt Fuji till Matsumoto">
+  <div class="day-hero-overlay"><div class="kicker">Dag 9 &nbsp;&middot;&nbsp; Mt Fuji → Matsumoto &nbsp;&middot;&nbsp; 20 okt (tis)</div></div>
+</div>
+<div class="day-hero-cap">Utsikt över Fuji vid Motosusjön</div>
+<div class="day-headline-block">
+  <div class="day-headline">Mt Fuji till Matsumoto</div>
+  <div class="day-deck">En dag längs Fujis västsida — utsikt vid en av Fujis sjöar, Keith Haring och ett tehus på styltor i bergen.</div>
+  <div class="day-rule"></div>
+</div>
+
+
+<div class="v3-map-banner">
+  <div class="v3-map-label">📍 Dagens karta</div>
+  <div class="map-frame" style="height:76px;"><div id="leaflet-d9" style="width:100%; height:100%;"></div></div>
+</div>
+<div class="v3-columns">
+  <div class="v3-main">
+    <p class="lead">Dagen tillbringas på bussen upp mot Japanska alperna — cirka 25 mil, med flera stopp längs vägen längs Mt Fujis vackra västra sida.</p>
+    <p>Första stoppet är ett förlängt uppehåll vid Motosusjön med utsikt mot berget. Därefter färd till Hokuto vid foten av de södra Japanska alperna och Nakamura Keith Haring Collection, ritat av Atsushi Kitagawara. Sista stopp i Chino vid sjön Suwa: Terunobu Fujimoris fantasifulla tehus, placerade i toppen av två valnötsträd. Tidig kväll ankomst Matsumoto.</p>
+    
+        <div class="place-row">
+          <img src="https://commons.wikimedia.org/wiki/Special:FilePath/Lake_Motosu03.jpg?width=600" alt="Motosusjön">
+          <div class="place-info">
+            <h4>Motosusjön</h4>
+            <div><a href="https://www.google.com/maps/place/Lake+Motosu">Karta</a><a href="https://www.youtube.com/results?search_query=Lake+Motosu+Mount+Fuji">YouTube</a></div>
+            <div class="exhibit-tag">Förlängt stopp – en av Fujis fem sjöar, vyn som pryder 1000-yensedeln.</div>
+          </div>
+        </div>
+        <div class="place-row">
+          <img src="https://commons.wikimedia.org/wiki/Special:FilePath/Nakamura_Keith_Haring_Collection.gif?width=600" alt="Nakamura Keith Haring Collection">
+          <div class="place-info">
+            <h4>Nakamura Keith Haring Collection</h4>
+            <div><a href="https://www.nakamura-haring.com/en/">Officiell sida</a></div>
+            
+          </div>
+        </div>
+        <div class="place-row">
+          <img src="https://commons.wikimedia.org/wiki/Special:FilePath/Takasugi-an.JPG?width=600" alt="Fujimoris tehus, Chino">
+          <div class="place-info">
+            <h4>Fujimoris tehus, Chino</h4>
+            <div><a href="https://www.youtube.com/results?search_query=Terunobu+Fujimori+tea+house+Chino">YouTube</a></div>
+            
+          </div>
+        </div>
+  </div>
+  <div class="v3-side">
+    <div class="essentials-title">Dagens gång</div>
+    <ul class="timeline"><li><span class="time">Förmiddag–lunch</span><span class="activity">Buss längs Fujis västsida – förlängt stopp vid Motosusjön</span></li><li><span class="time">Eftermiddag</span><span class="activity">Hokuto: Nakamura Keith Haring Collection</span></li><li><span class="time">Sen eftermiddag</span><span class="activity">Chino: Fujimoris tehus</span></li><li><span class="time">Tidig kväll</span><span class="activity">Ankomst Matsumoto</span></li></ul>
+    
+        <div class="hotel-box">
+          <div class="hotel-box-title">Hotell i natt</div>
+          <div class="hotel-box-name">Matsumoto Hotel Kagetsu</div>
+          <div style="font-size:8pt; color:var(--ink-soft); margin-bottom:4px;">Ote 4-8-9, Matsumoto, Nagano &middot; Tel: +81 263-32-0114</div>
+          <a class="city-link" href="https://matsumotohotel-kagetsu.com/en/">Matsumoto Hotel Kagetsu</a>
+        </div>
+        
+    
+    <div class="notes-box">
+      <div class="notes-box-title">Mina anteckningar</div>
+      
+        <div class="notes-row">
+          <div class="notes-label">🛍 Shopping</div>
+          <div class="notes-rule" contenteditable="true" data-placeholder="Skriv egna tips eller platser att besöka...">&nbsp;</div>
+        </div>
+      
+        <div class="notes-row">
+          <div class="notes-label">🍜 Restauranger</div>
+          <div class="notes-rule" contenteditable="true" data-placeholder="Skriv egna tips eller bokningar...">&nbsp;</div>
+        </div>
+      
+        <div class="notes-row">
+          <div class="notes-label">✨ Aktiviteter</div>
+          <div class="notes-rule" contenteditable="true" data-placeholder="Övrigt att göra eller komma ihåg...">&nbsp;</div>
+        </div>
+    </div>
+    
+  </div>
+</div>
+<div class="day-footer"><span>Arkitektur &amp; Konst i Japan</span><span>Dag 9 av 16</span></div></div>
+<div class="day-page" id="d10">
+<div class="day-masthead"><span class="pub">Arkitektur &amp; Konst i Japan &middot; Reseguide 2026</span></div>
+<div class="day-hero">
+  <img src="https://commons.wikimedia.org/wiki/Special:FilePath/Matsumoto_Castle_Keep_Tower.jpg?width=1400" alt="Matsumoto – Karuizawa">
+  <div class="day-hero-overlay"><div class="kicker">Dag 10 &nbsp;&middot;&nbsp; Matsumoto → Karuizawa &nbsp;&middot;&nbsp; 21 okt (ons)</div></div>
+</div>
+<div class="day-hero-cap">Matsumoto slott</div>
+<div class="day-headline-block">
+  <div class="day-headline">Matsumoto – Karuizawa</div>
+  <div class="day-deck">En svart borg, Kusamas prickar, och ett nytt hem i skogen för två nätter.</div>
+  <div class="day-rule"></div>
+</div>
+
+<div class="v2-columns">
+  <div class="v2-main">
+    <p class="lead">Morgonbesök vid Matsumoto slott, en av endast tolv bevarade originalborgar i Japan, vackert belägen med de Japanska alperna i bakgrunden.</p>
+    <p>Därefter Matsumoto City Museum of Art med permanent utställning av Yayoi Kusama, som föddes här 1929. Efter museibesöket blir det lite egen tid att strosa i de fina traditionella kvarteren längs floden. På eftermiddagen fortsätter resan med egen buss genom bergslandskapet i de Japanska alperna till Karuizawa, och incheckning på det nya hotellet Shishiiwa House.</p>
+    <p>Några av världens främsta arkitekter har gått samman för att rita detta smakfulla trähotell som verkligen smälter in i naturen. Idag består hotellet av tre hus, ritade av Shigeru Ban samt Ryue Nishizawa (manliga halvan av SANAA) &ndash; husen stod färdiga 2022 och 2023, och vi bor i de hus som Shigeru Ban ritat. På kvällen serveras middag i huset som Nishizawa designat: en fyrarätters meny där det prisade köket bjuder på det bästa man har, och vi slår oss bara ner och njuter.</p>
+    <div class="stat-strip"><div class="stat-box"><span class="stat-icon">🏯</span><span class="stat-text">Matsumoto slott</span></div><div class="stat-box"><span class="stat-icon">🎨</span><span class="stat-text">Yayoi Kusama-salar</span></div><div class="stat-box"><span class="stat-icon">🍽️</span><span class="stat-text">Fyrarätters middag</span></div></div>
+    
+        <div class="place-row">
+          <img src="https://commons.wikimedia.org/wiki/Special:FilePath/Matsumoto_Castle_Keep_Tower.jpg?width=600" alt="Matsumoto slott">
+          <div class="place-info">
+            <h4>Matsumoto slott</h4>
+            <div><a href="https://www.matsumoto-castle.jp/en/">Officiell sida</a><a href="https://www.google.com/maps/place/Matsumoto+Castle">Karta</a><a href="https://www.youtube.com/results?search_query=Matsumoto+Castle+Japan">YouTube</a></div>
+            
+          </div>
+        </div>
+        <div class="place-row">
+          <img src="https://commons.wikimedia.org/wiki/Special:FilePath/220728_Matsumoto_City_Museum_of_Art_Japan03s3.jpg?width=600" alt="Matsumoto City Museum of Art">
+          <div class="place-info">
+            <h4>Matsumoto City Museum of Art</h4>
+            <div><a href="https://matsumoto-artmuse.jp/en/">Officiell sida</a><a href="https://www.youtube.com/results?search_query=Yayoi+Kusama+Matsumoto+museum">YouTube</a></div>
+            <div class="exhibit-tag">Yayoi Kusama-salarna är permanenta och alltid öppna.</div>
+          </div>
+        </div>
+        <div class="place-row">
+          <img src="https://commons.wikimedia.org/wiki/Special:FilePath/Karuizawa_-_Karuizawa6413.jpg?width=600" alt="Shishiiwa House (övernattning)">
+          <div class="place-info">
+            <h4>Shishiiwa House (övernattning)</h4>
+            <div><a href="https://www.shishiiwahouse.jp/en/">Officiell sida</a></div>
+            <div class="exhibit-tag">Tre hus, ritade av Shigeru Ban och Ryue Nishizawa (SANAA), färdigställda 2022–2023. Gruppen bor i Bans hus; middagen serveras i Nishizawas restaurang.</div>
+          </div>
+        </div>
+  </div>
+  <div class="essentials">
+    <div class="essentials-title">Essentials</div>
+    <ul class="timeline"><li><span class="time">Förmiddag</span><span class="activity">Matsumoto slott</span></li><li><span class="time">Förmiddag</span><span class="activity">Matsumoto City Museum of Art</span></li><li class="free"><span class="time">Mitt på dagen</span><span class="activity">Egen tid i Matsumotos gamla kvarter</span></li><li><span class="time">Eftermiddag</span><span class="activity">Egen buss till Karuizawa</span></li><li><span class="time">Sen eftermiddag</span><span class="activity">Incheckning Shishiiwa House</span></li><li class="free"><span class="time">Kväll</span><span class="activity">Fyrarätters middag, Nishizawas restaurang</span></li></ul>
+    <div class="map-frame" style="height:76px; page-break-inside:avoid;"><div id="leaflet-d10" style="width:100%; height:100%;"></div></div>
+    
+        <div class="hotel-box">
+          <div class="hotel-box-title">Hotell i natt</div>
+          <div class="hotel-box-name">Shishi-iwa House, Karuizawa</div>
+          <div style="font-size:8pt; color:var(--ink-soft); margin-bottom:4px;">2147-768 Nagakura, Karuizawa, Nagano &middot; Tel: +81 267 31 6658</div>
+          <a class="city-link" href="https://www.shishiiwahouse.jp/en/">Shishiiwa House</a>
+        </div>
+        
+    
+    <div class="notes-box">
+      <div class="notes-box-title">Mina anteckningar</div>
+      
+        <div class="notes-row">
+          <div class="notes-label">🛍 Shopping</div>
+          <div class="notes-rule" contenteditable="true" data-placeholder="Skriv egna tips eller platser att besöka...">&nbsp;</div>
+        </div>
+      
+        <div class="notes-row">
+          <div class="notes-label">🍜 Restauranger</div>
+          <div class="notes-rule" contenteditable="true" data-placeholder="Skriv egna tips eller bokningar...">&nbsp;</div>
+        </div>
+      
+        <div class="notes-row">
+          <div class="notes-label">✨ Aktiviteter</div>
+          <div class="notes-rule" contenteditable="true" data-placeholder="Övrigt att göra eller komma ihåg...">&nbsp;</div>
+        </div>
+    </div>
+    
+  </div>
+</div>
+<div class="day-footer"><span>Arkitektur &amp; Konst i Japan</span><span>Dag 10 av 16</span></div></div>
+<div class="day-page" id="d11">
+<div class="day-masthead"><span class="pub">Arkitektur &amp; Konst i Japan &middot; Reseguide 2026</span></div>
+<div class="day-hero">
+  <img src="https://commons.wikimedia.org/wiki/Special:FilePath/221001_Hiroshi_Senju_Museum_Karuizawa_Nagano_pref_Japan01s3.jpg?width=1400" alt="Karuizawa">
+  <div class="day-hero-overlay"><div class="kicker">Dag 11 &nbsp;&middot;&nbsp; Karuizawa &nbsp;&middot;&nbsp; 22 okt (tor)</div></div>
+</div>
+<div class="day-hero-cap">Hiroshi Senju Museum, Karuizawa</div>
+<div class="day-headline-block">
+  <div class="day-headline">Karuizawa</div>
+  <div class="day-deck">En dag mellan naturens vattenfall och konstmuseer i Nagano-bergens svalka.</div>
+  <div class="day-rule"></div>
+</div>
+
+<div class="v1-columns">
+  <div class="v1-main">
+    <p class="lead">Förmiddagen ägnas åt en utflykt till Shiraito-fallet, ett 70 meter brett och 3 meter högt vattenfall där hundratals tunna vattenströmmar sipprar fram ur en vulkanisk klippvägg som fina, vita trådar (däraf namnet "shiraito", vita trådar).</p>
+    <div class="pullquote">&ldquo;Senjus museum smälter samman med skogen så fullständigt att man glömmer var naturen slutar och konsten börjar.&rdquo;</div>
+    <p>Vidare till Hiroshi Senju Museum, ritat av SANAA/Ryue Nishizawa, och sist Karuizawa New Art Museum, ritat av Nishimori Rikuo, med det anslutande björk- och mossklädda kapellet av Kengo Kuma — ett samarbete med den franske konstnären Jean-Michel Othoniel.</p>
+    <p>På eftermiddagen återvänder gruppen till Shishiiwa House och får stifta närmare bekantskap med sitt boende: Shigeru Bans säregna design, med möbler skapade av kartong. Vi får njuta av utrymmet med hotellets eget bibliotek, där vi också kan få ett föredrag om Shigeru Ban. Även denna kväll äts middag på hotellet, men idag nöjer vi oss med en enklare tvårättersmiddag.</p>
+    
+        <div class="place-row">
+          <img src="https://commons.wikimedia.org/wiki/Special:FilePath/Karuizawa_shiraito-no-taki03s3200.jpg?width=600" alt="Shiraito-fallet">
+          <div class="place-info">
+            <h4>Shiraito-fallet</h4>
+            <div><a href="http://www.town.karuizawa.lg.jp/www/contents/1001000000697/index.html">Officiell sida</a><a href="https://maps.google.com/?cid=13680438032319675058">Karta</a></div>
+            
+          </div>
+        </div>
+        <div class="place-row">
+          <img src="https://commons.wikimedia.org/wiki/Special:FilePath/221001_Hiroshi_Senju_Museum_Karuizawa_Nagano_pref_Japan07s3.jpg?width=600" alt="Hiroshi Senju Museum">
+          <div class="place-info">
+            <h4>Hiroshi Senju Museum</h4>
+            <div><a href="https://www.senju-museum.jp/en/">Officiell sida</a><a href="https://www.google.com/maps/place/Hiroshi+Senju+Museum+Karuizawa">Karta</a><a href="https://www.youtube.com/results?search_query=Hiroshi+Senju+Museum+Karuizawa+SANAA">YouTube</a></div>
+            <div class="exhibit-tag">Höstprogrammet var inte publicerat vid research-tillfället. Permanenta samlingen med Senjus vattenfallsmålningar är alltid tillgänglig.</div>
+          </div>
+        </div>
+        <div class="place-row">
+          <img src="https://commons.wikimedia.org/wiki/Special:FilePath/240308_Karuizawa_New_Art_Museum_Karuizawa_Japan01s3.jpg?width=600" alt="Karuizawa New Art Museum">
+          <div class="place-info">
+            <h4>Karuizawa New Art Museum</h4>
+            <div><a href="https://knam.jp/en/">Officiell sida</a></div>
+            <div class="exhibit-tag">Utställningen "New China Pulse" om samtida kinesisk konst – bekräftad för vårt besök.</div>
+          </div>
+        </div>
+  </div>
+  <div class="essentials">
+    <div class="essentials-title">Essentials</div>
+    <ul class="timeline"><li><span class="time">Förmiddag</span><span class="activity">Shiraito-fallet</span></li><li><span class="time">Förmiddag</span><span class="activity">Hiroshi Senju Museum</span></li><li><span class="time">Lunch</span><span class="activity">Karuizawa New Art Museum</span></li><li><span class="time">Eftermiddag</span><span class="activity">Åter till Shishiiwa House &ndash; bibliotek &amp; föredrag</span></li><li class="free"><span class="time">Kväll</span><span class="activity">Tvårättersmiddag på hotellet</span></li></ul>
+    <div class="map-frame" style="height:76px; page-break-inside:avoid;"><div id="leaflet-d11" style="width:100%; height:100%;"></div></div>
+    
+        <div class="hotel-box">
+          <div class="hotel-box-title">Hotell i natt</div>
+          <div class="hotel-box-name">Shishi-iwa House, Karuizawa</div>
+          <div style="font-size:8pt; color:var(--ink-soft); margin-bottom:4px;">2147-768 Nagakura, Karuizawa, Nagano &middot; Tel: +81 267 31 6658</div>
+          <a class="city-link" href="https://www.shishiiwahouse.jp/en/">Shishiiwa House</a>
+        </div>
+        
+    
+    <div class="notes-box">
+      <div class="notes-box-title">Mina anteckningar</div>
+      
+        <div class="notes-row">
+          <div class="notes-label">🛍 Shopping</div>
+          <div class="notes-rule" contenteditable="true" data-placeholder="Skriv egna tips eller platser att besöka...">&nbsp;</div>
+        </div>
+      
+        <div class="notes-row">
+          <div class="notes-label">🍜 Restauranger</div>
+          <div class="notes-rule" contenteditable="true" data-placeholder="Skriv egna tips eller bokningar...">&nbsp;</div>
+        </div>
+      
+        <div class="notes-row">
+          <div class="notes-label">✨ Aktiviteter</div>
+          <div class="notes-rule" contenteditable="true" data-placeholder="Övrigt att göra eller komma ihåg...">&nbsp;</div>
+        </div>
+    </div>
+    
+  </div>
+</div>
+<div class="day-footer"><span>Arkitektur &amp; Konst i Japan</span><span>Dag 11 av 16</span></div></div>
+<div class="day-page" id="d12">
+<div class="day-masthead"><span class="pub">Arkitektur &amp; Konst i Japan &middot; Reseguide 2026</span></div>
+<div class="day-hero">
+  <img src="https://commons.wikimedia.org/wiki/Special:FilePath/Shiroiya_Hotel.jpg?width=1400" alt="Maebashi">
+  <div class="day-hero-overlay"><div class="kicker">Dag 12 &nbsp;&middot;&nbsp; Maebashi &nbsp;&middot;&nbsp; 23 okt (fre)</div></div>
+</div>
+<div class="day-hero-cap">Hotel Shiroiya, Maebashi</div>
+<div class="day-headline-block">
+  <div class="day-headline">Maebashi</div>
+  <div class="day-deck">Ett 300 år gammalt värdshus, ombyggt till ett av Japans mest omtalade konsthotell.</div>
+  <div class="day-rule"></div>
+</div>
+
+<div class="v2-columns">
+  <div class="v2-main">
+    <p class="lead">Gruppen lämnar Karuizawa med egen buss för att åka till Gunmalänets huvudstad, Maebashi, för besök vid Hotel Shiroiya — ett 300 år gammalt värdshus omvandlat av arkitekten Sou Fujimoto till ett konsthotell.</p>
+    <p>Här finns verk av bl.a. Liam Gillick, Leandro Erlich och Hiroshi Sugimoto. Guidad visning av hotellet och dess konst på eftermiddagen. Maebashi fortsätter sin satsning på att bli en destination för konst, och på eftermiddagen besöker gruppen även stadens första konstbiennal, <a href="https://maebashi-biennale.com">Maebashi Biennale</a>, som pågår under hösten 2026.</p>
+    <p>Även Shiroiya har satsat stort på att bjuda på mat av toppklass. Uppdelade i två halvor äter gruppen sin middag längs bardisken som omgärdar köket, och får här njuta av en måltid med många serveringar. På hotellet finns också en liten bar med plats för bara 5–6 personer, designad av Hiroshi Sugimoto – vars anläggning vi besökte några dagar tidigare.</p>
+    <div class="stat-strip"><div class="stat-box"><span class="stat-icon">🚌</span><span class="stat-text">Egen buss till Maebashi</span></div><div class="stat-box"><span class="stat-icon">🏨</span><span class="stat-text">Guidad visning, Hotel Shiroiya</span></div><div class="stat-box"><span class="stat-icon">🎨</span><span class="stat-text">Maebashi Biennale</span></div></div>
+    
+        <div class="place-row">
+          <img src="https://commons.wikimedia.org/wiki/Special:FilePath/Shiroiya_Hotel.jpg?width=600" alt="Hotel Shiroiya">
+          <div class="place-info">
+            <h4>Hotel Shiroiya</h4>
+            <div><a href="https://www.shiroiya.com/">Officiell sida</a><a href="https://www.google.com/maps/place/SHIROIYA+HOTEL">Karta</a><a href="https://www.youtube.com/results?search_query=Shiroiya+Hotel+Sou+Fujimoto+Maebashi">YouTube</a></div>
+            
+          </div>
+        </div>
+        <div class="place-row">
+          <img src="https://commons.wikimedia.org/wiki/Special:FilePath/Maebashi_Cityscape_Montage.jpg?width=600" alt="Maebashi Biennale">
+          <div class="place-info">
+            <h4>Maebashi Biennale</h4>
+            <div><a href="https://maebashi-biennale.com">Officiell sida</a></div>
+            <div class="exhibit-tag">Stadens första konstbiennal, hösten 2026 &ndash; vi går runt i staden för att se vad biennalen har att erbjuda.</div>
+          </div>
+        </div>
+  </div>
+  <div class="essentials">
+    <div class="essentials-title">Essentials</div>
+    <ul class="timeline"><li><span class="time">Förmiddag</span><span class="activity">Egen buss till Maebashi</span></li><li><span class="time">Eftermiddag</span><span class="activity">Guidad visning, Hotel Shiroiya</span></li><li><span class="time">Eftermiddag</span><span class="activity">Maebashi Biennale</span></li><li class="free"><span class="time">Kväll</span><span class="activity">Middag vid bardisken (två sittningar)</span></li></ul>
+    <div class="map-frame" style="height:76px; page-break-inside:avoid;"><div id="leaflet-d12" style="width:100%; height:100%;"></div></div>
+    
+        <div class="hotel-box">
+          <div class="hotel-box-title">Hotell i natt</div>
+          <div class="hotel-box-name">Shiroiya Hotel, Maebashi</div>
+          <div style="font-size:8pt; color:var(--ink-soft); margin-bottom:4px;">Honmachi 2-2-15, Maebashi, Gunma &middot; Tel: +81 27-231-4618</div>
+          <a class="city-link" href="https://www.shiroiya.com/">Hotel Shiroiya</a>
+        </div>
+        
+    
+    <div class="notes-box">
+      <div class="notes-box-title">Mina anteckningar</div>
+      
+        <div class="notes-row">
+          <div class="notes-label">🛍 Shopping</div>
+          <div class="notes-rule" contenteditable="true" data-placeholder="Skriv egna tips eller platser att besöka...">&nbsp;</div>
+        </div>
+      
+        <div class="notes-row">
+          <div class="notes-label">🍜 Restauranger</div>
+          <div class="notes-rule" contenteditable="true" data-placeholder="Skriv egna tips eller bokningar...">&nbsp;</div>
+        </div>
+      
+        <div class="notes-row">
+          <div class="notes-label">✨ Aktiviteter</div>
+          <div class="notes-rule" contenteditable="true" data-placeholder="Övrigt att göra eller komma ihåg...">&nbsp;</div>
+        </div>
+    </div>
+    
+  </div>
+</div>
+<div class="day-footer"><span>Arkitektur &amp; Konst i Japan</span><span>Dag 12 av 16</span></div></div>
+<div class="day-page" id="d13">
+<div class="day-masthead"><span class="pub">Arkitektur &amp; Konst i Japan &middot; Reseguide 2026</span></div>
+<div class="day-hero">
+  <img src="https://commons.wikimedia.org/wiki/Special:FilePath/Shibuya_Crossing,_Aerial.jpg?width=1400" alt="Shibuya & Omotesando">
+  <div class="day-hero-overlay"><div class="kicker">Dag 13 &nbsp;&middot;&nbsp; Tokyo &nbsp;&middot;&nbsp; 24 okt (lör)</div></div>
+</div>
+<div class="day-hero-cap">Shibuya Crossing, Tokyo</div>
+<div class="day-headline-block">
+  <div class="day-headline">Shibuya & Omotesando</div>
+  <div class="day-deck">Världens främsta gratismuseum för samtida arkitektur — en promenad genom Tokyos mest fotogeniska gata.</div>
+  <div class="day-rule"></div>
+</div>
+
+
+<div class="v3-map-banner">
+  <div class="v3-map-label">📍 Dagens karta</div>
+  <div class="map-frame" style="height:76px;"><div id="leaflet-d13" style="width:100%; height:100%;"></div></div>
+</div>
+<div class="v3-columns">
+  <div class="v3-main">
+    <p class="lead">Tåget från Maebashi tar en dryg timme till Tokyo. Väl framme bekantar vi oss med staden och ser några olika stadsdelar, med start i den stadsdel där det hänt som allra mest på senaste tiden: Shibuya.</p>
+    <p>Vi följer ett av Tokyos absolut mest populära gångstråk, Cat Street, en snirklande gånggata som tar dig hela vägen från Shibuyas berömda korsning genom Harajuku och vidare till Omotesando — förbi byggnader av Herzog & de Meuron, OMA, MVRDV, Tadao Ando, Toyo Ito och SANAA. Cat Street är fyllt av trevliga kaféer, roliga klädesbutiker och spännande byggnader.</p>
+    <p>Vi stannar till för en fika när vi når Omotesando. Besök också vid ett par av de designade offentliga toaletterna i Tokyo Toilet Project, kända från Wim Wenders film "Perfect Days" – där arkitekter som Shigeru Ban, Toyo Ito, SANAA, Sou Fujimoto och Tadao Ando medverkat.</p>
+    
+        <div class="place-row">
+          <img src="https://commons.wikimedia.org/wiki/Special:FilePath/Omotesando_Tokyo_spring_2012.JPG?width=600" alt="Shibuya & Omotesando">
+          <div class="place-info">
+            <h4>Shibuya & Omotesando</h4>
+            <div><a href="https://www.google.com/maps/place/Omotesando">Karta</a><a href="https://www.youtube.com/results?search_query=Omotesando+architecture+walk">YouTube</a></div>
+            
+          </div>
+        </div>
+        <div class="place-row">
+          <img src="https://commons.wikimedia.org/wiki/Special:FilePath/Tokyo_Toilet_Project_01.jpg?width=600" alt="Tokyo Toilet Project">
+          <div class="place-info">
+            <h4>Tokyo Toilet Project</h4>
+            <div><a href="https://www.tokyo-toilet.jp/en/">Info</a><a href="https://www.youtube.com/results?search_query=Tokyo+Toilet+Project+architects">YouTube</a></div>
+            
+          </div>
+        </div>
+  </div>
+  <div class="v3-side">
+    <div class="essentials-title">Dagens gång</div>
+    <ul class="timeline"><li><span class="time">Förmiddag</span><span class="activity">Tåg Maebashi → Tokyo (ca 1 timme)</span></li><li><span class="time">Förmiddag</span><span class="activity">Shibuya</span></li><li><span class="time">Eftermiddag</span><span class="activity">Cat Street → Omotesando, med fikastopp</span></li><li><span class="time">Eftermiddag</span><span class="activity">Tokyo Toilet Project</span></li></ul>
+    
+        <div class="hotel-box">
+          <div class="hotel-box-title">Hotell i natt</div>
+          <div class="hotel-box-name">Shiba Park Hotel, Tokyo</div>
+          <div style="font-size:8pt; color:var(--ink-soft); margin-bottom:4px;">Shibakoen 1-5-10, Minato-ku, Tokyo &middot; Tel: +81 3-3433-4141</div>
+          <a class="city-link" href="https://www.shibaparkhotel.com/en/">Shiba Park Hotel</a>
+        </div>
+        
+    
+    <div class="notes-box">
+      <div class="notes-box-title">Mina anteckningar</div>
+      
+        <div class="notes-row">
+          <div class="notes-label">🛍 Shopping</div>
+          <div class="notes-rule" contenteditable="true" data-placeholder="Skriv egna tips eller platser att besöka...">&nbsp;</div>
+        </div>
+      
+        <div class="notes-row">
+          <div class="notes-label">🍜 Restauranger</div>
+          <div class="notes-rule" contenteditable="true" data-placeholder="Skriv egna tips eller bokningar...">&nbsp;</div>
+        </div>
+      
+        <div class="notes-row">
+          <div class="notes-label">✨ Aktiviteter</div>
+          <div class="notes-rule" contenteditable="true" data-placeholder="Övrigt att göra eller komma ihåg...">&nbsp;</div>
+        </div>
+    </div>
+    
+  </div>
+</div>
+<div class="day-footer"><span>Arkitektur &amp; Konst i Japan</span><span>Dag 13 av 16</span></div></div>
+<div class="day-page" id="d14">
+<div class="day-masthead"><span class="pub">Arkitektur &amp; Konst i Japan &middot; Reseguide 2026</span></div>
+<div class="day-hero">
+  <img src="https://commons.wikimedia.org/wiki/Special:FilePath/Roppongi_Hills_2013-12-01.jpg?width=1400" alt="Ueno & Roppongi Art Triangle">
+  <div class="day-hero-overlay"><div class="kicker">Dag 14 &nbsp;&middot;&nbsp; Tokyo &nbsp;&middot;&nbsp; 25 okt (sön)</div></div>
+</div>
+<div class="day-hero-cap">Mori Art Museum, Roppongi</div>
+<div class="day-headline-block">
+  <div class="day-headline">Ueno & Roppongi Art Triangle</div>
+  <div class="day-deck">En dag mellan två av Tokyos konstnärliga kraftcentrum — kejserliga samlingar och samtida galleri-arkitektur.</div>
+  <div class="day-rule"></div>
+</div>
+
+<div class="v1-columns">
+  <div class="v1-main">
+    <p class="lead">På morgonen åker gruppen till Okachimachi och följer en av Tokyos trevligaste basargator till Ueno, där flera av stadens stora museer ligger samlade i parken — bl.a. Le Corbusiers Nationalmuseum för västerländsk konst. Vidare till Roppongi och "Art Triangle".</p>
+    <p>Suntory Museum of Art, Mori Art Museum och National Art Center, Tokyo (ritat av Kisho Kurokawa), plus designmuseet 21_21 Design Sight.</p>
+    <div class="pullquote">&ldquo;Roppongis "Art Triangle" är kanske det enda ställe i världen där tre av samtidskonstens finaste museer ligger inom tio minuters promenad från varandra.&rdquo;</div>
+    <p>I området finns även ett trettiotal offentliga konstverk av namn som Louise Bourgeois och Cai Guo-Qiang. Kvällen är fri för egen middag.</p>
+    
+        <div class="place-row">
+          <img src="https://commons.wikimedia.org/wiki/Special:FilePath/National_museum_of_western_art05s3200.jpg?width=600" alt="Ueno-museerna">
+          <div class="place-info">
+            <h4>Ueno-museerna</h4>
+            <div><a href="https://www.google.com/maps/place/Ueno+Park">Karta</a></div>
+            <div class="exhibit-tag">Tokyo Metropolitan Art Museums "Hyakka Ryoran" stänger 18 okt – slut innan vårt besök. MOMAT:s "Takehisa Yumeji" öppnar 23 okt – redan igång vid vårt besök 25/10.</div>
+          </div>
+        </div>
+        <div class="place-row">
+          <img src="https://commons.wikimedia.org/wiki/Special:FilePath/The_National_Art_Center_,_Tokyo_-_panoramio_(1).jpg?width=600" alt="National Art Center, Tokyo">
+          <div class="place-info">
+            <h4>National Art Center, Tokyo</h4>
+            <div><a href="https://www.nact.jp/english/">Officiell sida</a><a href="https://www.youtube.com/results?search_query=National+Art+Center+Tokyo+Kisho+Kurokawa">YouTube</a></div>
+            <div class="exhibit-tag">Louvrens "Renässansen" (9 sep–13 dec 2026) – täcker hela vår resa.</div>
+          </div>
+        </div>
+        <div class="place-row">
+          <img src="https://commons.wikimedia.org/wiki/Special:FilePath/Tokyo-Midtown-Suntory-Museum-of-Art-01.jpg?width=600" alt="Suntory Museum of Art">
+          <div class="place-info">
+            <h4>Suntory Museum of Art</h4>
+            <div><a href="https://www.suntory.com/sma/">Officiell sida</a></div>
+            <div class="exhibit-tag">Itsuo-museets mästerverk (16 sep–8 nov 2026) – täcker hela vår resa.</div>
+          </div>
+        </div>
+        <div class="place-row">
+          <img src="https://commons.wikimedia.org/wiki/Special:FilePath/Tokyo_Midtown.2.JPG?width=600" alt="Mori Art Museum">
+          <div class="place-info">
+            <h4>Mori Art Museum</h4>
+            <div><a href="https://www.mori.art.museum/en/">Officiell sida</a><a href="https://www.google.com/maps/place/Roppongi">Karta</a></div>
+            <div class="exhibit-tag">⚠️ Ligger sannolikt i en lucka mellan utställningar (Ron Mueck stänger 23 sep, Mariko Mori öppnar inte förrän 31 okt) – kontrollera officiell sida före besök.</div>
+          </div>
+        </div>
+        <div class="place-row">
+          <img src="https://commons.wikimedia.org/wiki/Special:FilePath/21_21_DESIGN_SIGHT.jpg?width=600" alt="21_21 Design Sight">
+          <div class="place-info">
+            <h4>21_21 Design Sight</h4>
+            <div><a href="https://www.2121designsight.jp/en/">Officiell sida</a></div>
+            <div class="exhibit-tag">Höstprogrammet var inte publicerat vid research-tillfället.</div>
+          </div>
+        </div>
+  </div>
+  <div class="essentials">
+    <div class="essentials-title">Essentials</div>
+    <ul class="timeline"><li><span class="time">Förmiddag</span><span class="activity">Ueno-museerna</span></li><li><span class="time">Eftermiddag</span><span class="activity">Roppongi Art Triangle</span></li><li class="free"><span class="time">Kväll</span><span class="activity">Fri tid i Roppongi/Tokyo</span></li></ul>
+    <div class="map-frame" style="height:76px; page-break-inside:avoid;"><div id="leaflet-d14" style="width:100%; height:100%;"></div></div>
+    
+        <div class="hotel-box">
+          <div class="hotel-box-title">Hotell i natt</div>
+          <div class="hotel-box-name">Shiba Park Hotel, Tokyo</div>
+          <div style="font-size:8pt; color:var(--ink-soft); margin-bottom:4px;">Shibakoen 1-5-10, Minato-ku, Tokyo &middot; Tel: +81 3-3433-4141</div>
+          <a class="city-link" href="https://www.shibaparkhotel.com/en/">Shiba Park Hotel</a>
+        </div>
+        
+    
+    <div class="notes-box">
+      <div class="notes-box-title">Mina anteckningar</div>
+      
+        <div class="notes-row">
+          <div class="notes-label">🛍 Shopping</div>
+          <div class="notes-rule" contenteditable="true" data-placeholder="Skriv egna tips eller platser att besöka...">&nbsp;</div>
+        </div>
+      
+        <div class="notes-row">
+          <div class="notes-label">🍜 Restauranger</div>
+          <div class="notes-rule" contenteditable="true" data-placeholder="Skriv egna tips eller bokningar...">&nbsp;</div>
+        </div>
+      
+        <div class="notes-row">
+          <div class="notes-label">✨ Aktiviteter</div>
+          <div class="notes-rule" contenteditable="true" data-placeholder="Övrigt att göra eller komma ihåg...">&nbsp;</div>
+        </div>
+    </div>
+    
+  </div>
+</div>
+<div class="day-footer"><span>Arkitektur &amp; Konst i Japan</span><span>Dag 14 av 16</span></div></div>
+<div class="day-page" id="d15">
+<div class="day-masthead"><span class="pub">Arkitektur &amp; Konst i Japan &middot; Reseguide 2026</span></div>
+<div class="day-hero">
+  <img src="https://commons.wikimedia.org/wiki/Special:FilePath/Sensoji_2023.jpg?width=1400" alt="Tokyo – egen dag">
+  <div class="day-hero-overlay"><div class="kicker">Dag 15 &nbsp;&middot;&nbsp; Tokyo &nbsp;&middot;&nbsp; 26 okt (mån)</div></div>
+</div>
+<div class="day-hero-cap">Senso-ji, Asakusa</div>
+<div class="day-headline-block">
+  <div class="day-headline">Tokyo – egen dag</div>
+  <div class="day-deck">En sista fri dag att forma helt efter eget huvud, innan avskedsmiddagen.</div>
+  <div class="day-rule"></div>
+</div>
+
+<div class="v2-columns">
+  <div class="v2-main">
+    <p class="lead">En dag för egna upptäckter: varuhusen i Ginza, en utflykt till kuststaden Kamakura, köksknivar i Kappabashi, eller det gamla handelskvarteret Asakusa.</p>
+    <p>Färdledaren ger förslag på morgonen. Avskedsmiddag på kvällen.</p>
+    <div class="stat-strip"><div class="stat-box"><span class="stat-icon">🛍️</span><span class="stat-text">Ginza</span></div><div class="stat-box"><span class="stat-icon">⛩️</span><span class="stat-text">Kamakura</span></div><div class="stat-box"><span class="stat-icon">🍶</span><span class="stat-text">Asakusa</span></div></div>
+    
+  </div>
+  <div class="essentials">
+    <div class="essentials-title">Essentials</div>
+    <ul class="timeline"><li class="free"><span class="time">Hela dagen</span><span class="activity">Fri tid – Ginza / Kamakura / Kappabashi / Asakusa</span></li><li><span class="time">Kväll</span><span class="activity">Avskedsmiddag</span></li></ul>
+    <div class="map-frame" style="height:76px; page-break-inside:avoid;"><div id="leaflet-d15" style="width:100%; height:100%;"></div></div>
+    
+        <div class="hotel-box">
+          <div class="hotel-box-title">Hotell i natt</div>
+          <div class="hotel-box-name">Shiba Park Hotel, Tokyo</div>
+          <div style="font-size:8pt; color:var(--ink-soft); margin-bottom:4px;">Shibakoen 1-5-10, Minato-ku, Tokyo &middot; Tel: +81 3-3433-4141</div>
+          <a class="city-link" href="https://www.shibaparkhotel.com/en/">Shiba Park Hotel</a>
+        </div>
+        
+    
+    <div class="notes-box">
+      <div class="notes-box-title">Mina anteckningar</div>
+      
+        <div class="notes-row">
+          <div class="notes-label">🛍 Shopping</div>
+          <div class="notes-rule" contenteditable="true" data-placeholder="Skriv egna tips eller platser att besöka...">&nbsp;</div>
+        </div>
+      
+        <div class="notes-row">
+          <div class="notes-label">🍜 Restauranger</div>
+          <div class="notes-rule" contenteditable="true" data-placeholder="Skriv egna tips eller bokningar...">&nbsp;</div>
+        </div>
+      
+        <div class="notes-row">
+          <div class="notes-label">✨ Aktiviteter</div>
+          <div class="notes-rule" contenteditable="true" data-placeholder="Övrigt att göra eller komma ihåg...">&nbsp;</div>
+        </div>
+    </div>
+    
+  </div>
+</div>
+<div class="day-footer"><span>Arkitektur &amp; Konst i Japan</span><span>Dag 15 av 16</span></div></div>
+<div class="day-page" id="d16">
+<div class="day-masthead"><span class="pub">Arkitektur &amp; Konst i Japan &middot; Reseguide 2026</span></div>
+<div class="day-hero">
+  <img src="https://commons.wikimedia.org/wiki/Special:FilePath/Ueno_park.jpg?width=1400" alt="Hemresa">
+  <div class="day-hero-overlay"><div class="kicker">Dag 16 &nbsp;&middot;&nbsp; Hemresa &nbsp;&middot;&nbsp; 27 okt (tis)</div></div>
+</div>
+<div class="day-hero-cap">Ueno Park, Tokyo</div>
+<div class="day-headline-block">
+  <div class="day-headline">Hemresa</div>
+  <div class="day-deck">Sista morgonen i Japan, innan flyget hem.</div>
+  <div class="day-rule"></div>
+</div>
+
+<div class="v2-columns">
+  <div class="v2-main">
+    <p class="lead">Flygresan hem går direkt från Tokyo till Köpenhamn, med anslutning vidare till Stockholm samma kväll.</p>
+    <p>Hemkomst denna dag, 27 oktober, kl. 18.15 på Arlanda.</p>
+    <div class="stat-strip"><div class="stat-box"><span class="stat-icon">🧳</span><span class="stat-text">Utcheckning</span></div><div class="stat-box"><span class="stat-icon">✈️</span><span class="stat-text">Flyg hem</span></div><div class="stat-box"><span class="stat-icon">🇯🇵</span><span class="stat-text">På återseende, Japan!</span></div></div>
+    
+  </div>
+  <div class="essentials">
+    <div class="essentials-title">Essentials</div>
+    <ul class="timeline"><li><span class="time">Morgon</span><span class="activity">Flyg Tokyo &rarr; Köpenhamn &rarr; Stockholm</span></li></ul>
+    <div class="flight-box">
+          <div class="flight-box-title">Flyginformation &middot; Hemresa</div>
+          <div class="flight-row"><b>SK984</b><span class="flight-route">Tokyo &rarr; Köpenhamn</span><span class="flight-time">27 okt &middot; 09:55–15:20</span></div>
+          <div class="flight-row"><b>SK1408</b><span class="flight-route">Köpenhamn &rarr; Stockholm</span><span class="flight-time">27 okt &middot; 17:00–18:15</span></div>
+        </div>
+        
+    
+        <div class="hotel-box hotel-box-empty">
+          <div class="hotel-box-title">Hotell i natt</div>
+          <div style="font-size:8.5pt; color:var(--ink-soft); font-style:italic;">Hemresa &ndash; ingen övernattning</div>
+        </div>
+        
+    
+    <div class="notes-box">
+      <div class="notes-box-title">Mina anteckningar</div>
+      
+        <div class="notes-row">
+          <div class="notes-label">🛍 Shopping</div>
+          <div class="notes-rule" contenteditable="true" data-placeholder="Skriv egna tips eller platser att besöka...">&nbsp;</div>
+        </div>
+      
+        <div class="notes-row">
+          <div class="notes-label">🍜 Restauranger</div>
+          <div class="notes-rule" contenteditable="true" data-placeholder="Skriv egna tips eller bokningar...">&nbsp;</div>
+        </div>
+      
+        <div class="notes-row">
+          <div class="notes-label">✨ Aktiviteter</div>
+          <div class="notes-rule" contenteditable="true" data-placeholder="Övrigt att göra eller komma ihåg...">&nbsp;</div>
+        </div>
+    </div>
+    
+  </div>
+</div>
+<div class="day-footer"><span>Arkitektur &amp; Konst i Japan</span><span>Dag 16 av 16</span></div></div>
+
+<script>
+  function makeDayMap(containerId, points) {
+    var el = document.getElementById(containerId);
+    if (!el || typeof L === 'undefined') return;
+    var map = L.map(containerId, { scrollWheelZoom:false });
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap contributors',
+      maxZoom: 19
+    }).addTo(map);
+    var dayDot = L.divIcon({ className: '', html: '<div class="leaflet-daydot"></div>', iconSize: [12,12], iconAnchor: [6,6] });
+    points.forEach(function(p) {
+      L.marker([p.lat, p.lng], { icon: dayDot }).addTo(map).bindTooltip(p.name, { direction: 'top' });
+    });
+    var entry = { map: map };
+    if (points.length > 1) {
+      entry.bounds = L.latLngBounds(points.map(function(p){ return [p.lat, p.lng]; }));
+      entry.padding = [14,14];
+      entry.maxZoom = 12;
+      map.fitBounds(entry.bounds, { padding: entry.padding, maxZoom: entry.maxZoom });
+    } else {
+      entry.center = [points[0].lat, points[0].lng];
+      entry.zoom = 12;
+      map.setView(entry.center, entry.zoom);
+    }
+    (window.__guideMaps = window.__guideMaps || []).push(entry);
+  }
+
+  // Kartorna måste ritas om när utskriftslayouten byter containerstorlek.
+  function refitGuideMaps() {
+    (window.__guideMaps || []).forEach(function(e) {
+      e.map.invalidateSize(false);
+      if (e.bounds) {
+        e.map.fitBounds(e.bounds, { padding: e.padding || [20,20], maxZoom: e.maxZoom || 19 });
+      } else {
+        e.map.setView(e.center, e.zoom);
+      }
+    });
+  }
+  window.addEventListener('beforeprint', refitGuideMaps);
+  if (window.matchMedia) {
+    var pmq = window.matchMedia('print');
+    if (pmq.addEventListener) { pmq.addEventListener('change', refitGuideMaps); }
+    else if (pmq.addListener) { pmq.addListener(refitGuideMaps); }
+  }
+  window.addEventListener('DOMContentLoaded', function() {
+    makeDayMap('leaflet-d1', [{"lat": 34.432, "lng": 135.2366, "name": "Kansai International Airport"}]); makeDayMap('leaflet-d3', [{"lat": 35.1197, "lng": 135.8344, "name": "Sanzen-in (Ohara)"}, {"lat": 35.027, "lng": 135.7982, "name": "Ginkaku-ji (Silverpaviljongen)"}]); makeDayMap('leaflet-d4', [{"lat": 35.1091, "lng": 135.946, "name": "Sagawa Art Museum"}, {"lat": 34.9149, "lng": 136.0162, "name": "MIHO Museum"}]); makeDayMap('leaflet-d5', [{"lat": 34.6686, "lng": 135.5031, "name": "Dotonbori"}, {"lat": 34.6924, "lng": 135.4914, "name": "National Museum of Art, Osaka"}]); makeDayMap('leaflet-d6', [{"lat": 34.7398, "lng": 135.2999, "name": "Yodoko Guest House"}, {"lat": 34.7644, "lng": 135.2465, "name": "Rokko Shidare Observatory"}]); makeDayMap('leaflet-d7', [{"lat": 34.2418, "lng": 132.227, "name": "Simose Art Museum"}, {"lat": 34.296, "lng": 132.3198, "name": "Itsukushima-helgedomen"}, {"lat": 34.3957, "lng": 132.4547, "name": "Orizuru Tower"}]); makeDayMap('leaflet-d8', [{"lat": 35.1882, "lng": 139.135, "name": "Enoura Observatory"}]); makeDayMap('leaflet-d9', [{"lat": 35.4647, "lng": 138.5886, "name": "Motosusjön"}, {"lat": 35.8875, "lng": 138.3186, "name": "Nakamura Keith Haring Collection"}, {"lat": 35.9956, "lng": 138.1612, "name": "Fujimoris tehus, Chino"}]); makeDayMap('leaflet-d10', [{"lat": 36.2387, "lng": 137.9689, "name": "Matsumoto slott"}, {"lat": 36.2316, "lng": 137.9765, "name": "Matsumoto City Museum of Art"}, {"lat": 36.3682, "lng": 138.5877, "name": "Shishiiwa House"}]); makeDayMap('leaflet-d11', [{"lat": 36.3354, "lng": 138.5973, "name": "Hiroshi Senju Museum"}, {"lat": 36.3495, "lng": 138.6347, "name": "Karuizawa New Art Museum"}]); makeDayMap('leaflet-d12', [{"lat": 36.3902, "lng": 139.0701, "name": "Hotel Shiroiya"}]); makeDayMap('leaflet-d13', [{"lat": 35.6595, "lng": 139.7006, "name": "Shibuya"}, {"lat": 35.669, "lng": 139.71, "name": "Omotesando"}]); makeDayMap('leaflet-d14', [{"lat": 35.7101, "lng": 139.7744, "name": "Ueno"}, {"lat": 35.6605, "lng": 139.7293, "name": "Mori Art Museum / Roppongi"}]); makeDayMap('leaflet-d15', [{"lat": 35.7148, "lng": 139.7967, "name": "Asakusa"}]);
+  });
+</script>
+</body>
+</html>

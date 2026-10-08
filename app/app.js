@@ -32,6 +32,7 @@ let sel = 1, filt = 'all', cat = 'alla', cur = null, mediaMode = 'bild', editTag
 let valdSjalv = false;   // true så fort användaren själv valt en dag
 const mins = t => { const [a, b] = t.split(':').map(Number); return a * 60 + b; };
 const pad = n => String(n).padStart(2, '0');
+const miniTxt = k => ((S.notes[k] || '').trim() || (IDX[k] && IDX[k].m) || '');
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
 /* ---------- Tid ---------- */
@@ -179,8 +180,8 @@ function drawActs() {
       <div class="tick"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5"><path d="M4 12.5l5.5 5.5L20 7"/></svg></div>
       ${thumb}
       <div class="abody"><div class="at">${a.t}</div><div class="an">${esc(a.n)}</div>
-      ${a.m ? `<div class="ameta">${esc(a.m)}${nt ? ' · <span class="hasnote">✎</span>' : ''}</div>`
-            : (nt ? '<div class="ameta"><span class="hasnote">✎ anteckning</span></div>' : '')}
+      ${a.m ? `<div class="ameta">${esc(a.m)}</div>` : ''}
+      ${(nt || '').trim() ? `<div class="ameta mnote">${esc(nt.trim())}</div>` : ''}
       <div class="tags">${tagHtml(a.g)}</div></div></div>`;
   }).join('') : '<div class="empty"><div class="e">✓</div><p>Inget matchar filtret.</p></div>';
 }
@@ -405,7 +406,7 @@ function drawCities() {
   document.getElementById('citylist').innerHTML = CITIES.map(c => {
     const st = cityStatus(c);
     return `<div class="city-row ${st === 'visited' ? 'visited' : ''} ${c.n === routeSel ? 'active' : ''}" id="city-${c.n}" onclick="selectCity(${c.n})">
-      <b>${c.n}</b><h3>${esc(c.name)}</h3><span>${cityDagar(c)}${S.cnotes[c.n] ? ' · ✎' : ''}</span></div>`;
+      <b>${c.n}</b><h3>${esc(c.name)}</h3><span>${cityDagar(c)}</span></div>`;
   }).join('');
   const c = CITIES.find(x => x.n === routeSel), st = cityStatus(c);
   document.getElementById('selcard').innerHTML =
@@ -480,7 +481,8 @@ function drawCityPlaces() {
       ${p.photo && PHOTOS[p.photo] ? `<img class="pthumb" src="${PHOTOS[p.photo]}" alt="">`
         : `<div class="ico">${ic[p.cat] || '📍'}</div>`}
       <div class="mb"><div class="mn">${esc(p.name)}</div>
-      <div class="mm">${d ? 'Dag ' + d.n + ' · ' + a.t : 'Ingen tid satt'}</div></div>
+      <div class="mm">${d ? 'Dag ' + d.n + ' · ' + a.t : 'Ingen tid satt'}</div>
+      ${(S.notes[p.id] || '').trim() ? `<div class="mm mnote">${esc(S.notes[p.id].trim())}</div>` : ''}</div>
       <div class="tags" style="margin-top:0">${tagHtml((a.g || [p.cat]).filter(k => k !== 'egen'))}</div></div>`;
   }).join('') : `<p class="hint">Inget här än${cyFilt !== 'alla' ? ' under det filtret' : ''}.</p>`;
 }
@@ -584,7 +586,15 @@ function openAct(k) {
   setWhen('sh', a.dayN ? 'tid' : 'plats');
   editTags = (a.g || []).slice();
   renderTagEdit();
-  document.getElementById('shD').textContent = a.d || a.m || 'Ingen beskrivning — lägg till en egen anteckning nedan.';
+  // Beskrivning och egen anteckning visas på samma ställe. Anteckningen läggs under beskrivningen.
+  const nt0 = (S.notes[k] || '').trim(), besk = a.d || a.m || '';
+  const shD = document.getElementById('shD');
+  shD.textContent = besk || (nt0 ? '' : 'Ingen beskrivning — tryck på Redigera för att lägga till en anteckning.');
+  shD.classList.toggle('hint', !besk && !nt0);
+  shD.style.display = shD.textContent ? '' : 'none';
+  const shNV = document.getElementById('shNV');
+  shNV.textContent = nt0;
+  document.getElementById('shNoteWrap').style.display = nt0 ? '' : 'none';
   document.getElementById('shMapBtn').innerHTML = a.lat != null
     ? `<div class="maprow">
         <a class="maplink" href="${a.mapUrl && /maps\.apple\.com/i.test(a.mapUrl) ? a.mapUrl : `https://maps.apple.com/?ll=${a.lat},${a.lng}&q=${encodeURIComponent(a.n)}`}" target="_blank" rel="noopener">Apple Kartor</a>
@@ -594,9 +604,6 @@ function openAct(k) {
     `<a class="${/youtube/.test(u) ? 'yt' : ''}" href="${u}" target="_blank" rel="noopener">${/youtube/.test(u) ? '▶' : '↗'} ${esc(t)}</a>`).join('');
   document.getElementById('shN').value = S.notes[k] || '';
   document.getElementById('shTagsView').innerHTML = tagHtml(a.g);
-  const nv = document.getElementById('shNView'), nt = (S.notes[k] || '').trim();
-  nv.textContent = nt || 'Inga anteckningar än. Tryck på Redigera för att lägga till.';
-  nv.classList.toggle('hint', !nt);
   document.getElementById('sheet').classList.add('view');   // alltid visningsläge när kortet öppnas
   document.getElementById('shSw').classList.toggle('on', isDone(k));
   document.getElementById('delBtn').style.display = a.own ? '' : 'none';
@@ -680,7 +687,8 @@ function toggleDone() {
   drawActs(); drawNow();
 }
 async function saveDetail() {
-  S.notes[cur] = document.getElementById('shN').value;
+  const nyNot = document.getElementById('shN').value.trim();
+  if (nyNot) S.notes[cur] = nyNot; else delete S.notes[cur];
   const p = S.places.find(x => x.id === cur);
   if (editPhoto) {
     const old = p ? p.photo : (S.pimg[cur] || {}).id;
@@ -1515,11 +1523,11 @@ function drawNow() {
     const nk = order[ni], a = IDX[nk], dm = mins(eff(nk)) - m;
     h += `<div class="heading"><strong>${pre ? 'Första dagen' : 'Härnäst'}</strong><em>${pre ? d.wd + ' ' + d.dl : 'om ' + (dm >= 60 ? Math.floor(dm / 60) + ' tim' + (dm % 60 ? ' ' + pad(dm % 60) + ' min' : '') : dm + ' min')}</em></div>
       <section class="story" onclick="openAct('${nk}')"><div class="simg" style="${bg(a)}">${bildSrc(a) ? '' : a.i || '📍'}</div>
-      <div class="scopy"><div class="stime">${eff(nk)}</div><h2>${esc(a.n)}</h2><p>${esc(a.m || '')}</p></div></section>`;
+      <div class="scopy"><div class="stime">${eff(nk)}</div><h2>${esc(a.n)}</h2><p>${esc(miniTxt(nk))}</p></div></section>`;
     const rest = order.slice(ni + 1);
     if (rest.length) h += `<div class="more">${pre ? 'Senare under dagen' : 'Senare idag'}</div>` + rest.map(k => { const a2 = IDX[k];
       return `<section class="later" onclick="openAct('${k}')"><div class="limg" style="${bg(a2)}">${bildSrc(a2) ? '' : a2.i || '📍'}</div>
-        <div><div class="ltime">${eff(k)}</div><h3>${esc(a2.n)}</h3><p>${esc(a2.m || '')}</p></div></section>`; }).join('');
+        <div><div class="ltime">${eff(k)}</div><h3>${esc(a2.n)}</h3><p>${esc(miniTxt(k))}</p></div></section>`; }).join('');
   } else h += `<div class="heading"><strong>Kvällen</strong><em>Dagens program är slut</em></div>`;
   h += '</div>';
   nb.innerHTML = h;
