@@ -34,6 +34,13 @@ const mins = t => { const [a, b] = t.split(':').map(Number); return a * 60 + b; 
 const pad = n => String(n).padStart(2, '0');
 const miniTxt = k => ((S.notes[k] || '').trim() || (IDX[k] && IDX[k].m) || '');
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+/* Gör webbadresser i en anteckning klickbara. Texten escapas först, så inget annat blir HTML. */
+const linkify = s => esc(s).replace(/(https?:\/\/[^\s<]+|www\.[^\s<]+)/gi, m => {
+  const tail = (m.match(/(&quot;|[.,;:!?)\]])+$/) || [''])[0];
+  const url = tail ? m.slice(0, -tail.length) : m;
+  const href = /^www\./i.test(url) ? 'https://' + url : url;
+  return `<a href="${href}" target="_blank" rel="noopener">${url}</a>${tail}`;
+});
 
 /* ---------- Tid ---------- */
 function now() {
@@ -490,7 +497,7 @@ function drawCityPlaces() {
 function setCityEdit(on) { document.getElementById('citysheet').classList.toggle('view', !on); }
 function drawCityNoteView() {
   const el = document.getElementById('cyNView'), t = S.cnotes[curCity] || '';
-  el.textContent = t || 'Inga anteckningar än. Tryck på Redigera för att lägga till.';
+  if (t) el.innerHTML = linkify(t); else el.textContent = 'Inga anteckningar än. Tryck på Redigera för att lägga till.';
   el.classList.toggle('hint', !t);
 }
 function startEditCity() {
@@ -593,7 +600,7 @@ function openAct(k) {
   shD.classList.toggle('hint', !besk && !nt0);
   shD.style.display = shD.textContent ? '' : 'none';
   const shNV = document.getElementById('shNV');
-  shNV.textContent = nt0;
+  shNV.innerHTML = linkify(nt0);
   document.getElementById('shNoteWrap').style.display = nt0 ? '' : 'none';
   document.getElementById('shMapBtn').innerHTML = a.lat != null
     ? `<div class="maprow">
