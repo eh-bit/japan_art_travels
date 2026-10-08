@@ -411,7 +411,7 @@ function drawCities() {
   const c = CITIES.find(x => x.n === routeSel), st = cityStatus(c);
   document.getElementById('selcard').innerHTML =
     `<div class="selected-card" onclick="openCity(${c.n})"><img src="img/${c.img}.jpg" alt="">
-      <div class="selected-copy"><small>${cityDagar(c)} · ${esc(c.dl)}</small><h2>${esc(c.name)}</h2><p>${esc(c.txt)}</p>
+      <div class="selected-copy"><small>${cityDagar(c)} · ${esc(c.dl.replace(/^Dag(ar)?\s[^·]*·\s*/, ''))}</small><h2>${esc(c.name)}</h2><p>${esc(c.txt)}</p>
       <span class="visited-label">${st === 'visited' ? 'Besökt' : st === 'now' ? 'Nuvarande destination' : 'Kommande'} · tryck för mer</span></div></div>`;
   document.querySelectorAll('.rdot').forEach(e => e.classList.toggle('on', +e.textContent === routeSel));
 }
